@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
-	"mobilecoin/block"
 
+	"github.com/MixinNetwork/mobilecoin-go/block"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/bwesterb/go-ristretto"
 	"github.com/dchest/blake2b"

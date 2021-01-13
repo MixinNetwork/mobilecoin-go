@@ -1,4 +1,4 @@
-module mobilecoin
+module github.com/MixinNetwork/mobilecoin-go
 
 go 1.15
 
