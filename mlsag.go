@@ -20,7 +20,7 @@ func signRing(message []byte, inputs []*TxOut, realIndex int, onetimePrivateKey 
 	// G = GENERATORS.B_blinding // B_blinding is Base Point
 
 	// key image, I = KeyImage
-	keyImage := keyImageFromPrivate(onetimePrivateKey)
+	keyImage := KeyImageFromPrivate(onetimePrivateKey)
 	I := keyImage
 
 	outputCommitment := NewCommitment(value, outputBlinding)

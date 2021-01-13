@@ -8,7 +8,7 @@ import (
 	"github.com/dchest/blake2b"
 )
 
-func keyImageFromPrivate(private *ristretto.Scalar) *ristretto.Point {
+func KeyImageFromPrivate(private *ristretto.Scalar) *ristretto.Point {
 	var p ristretto.Point
 	p.ScalarMultBase(private)
 
