@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"mixin.one/blockchain/external/mobilecoin/block"
+	"github.com/MixinNetwork/mobilecoin-go/block"
 )
 
 // Only for debug
-func TestDigestible(t *testing.T) {
+func testDigestible(t *testing.T) {
 	tx := &block.TxPrefix{
 		Inputs: []*block.TxIn{
 			&block.TxIn{

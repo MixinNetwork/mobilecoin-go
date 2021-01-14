@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
+	"log"
 
 	"github.com/MixinNetwork/mobilecoin-go/block"
 	"github.com/btcsuite/btcutil/base58"
@@ -75,6 +76,9 @@ func (account *Account) B58Code(index uint64) (string, error) {
 	spend := PublicKey(spendPrivate)
 	view := PublicKey(account.SubaddressViewPrivateKey(spendPrivate))
 
+	log.Println("B58Code::: spend", hex.EncodeToString(spend.Bytes()))
+	log.Println("B58Code::: view", hex.EncodeToString(view.Bytes()))
+
 	address := &block.PublicAddress{
 		ViewPublicKey:  &block.CompressedRistretto{Data: view.Bytes()},
 		SpendPublicKey: &block.CompressedRistretto{Data: spend.Bytes()},
@@ -96,7 +100,7 @@ func (addr *PublicAddress) B58Code() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	spend, err := hex.DecodeString(addr.ViewPublicKey)
+	spend, err := hex.DecodeString(addr.SpendPublicKey)
 	if err != nil {
 		return "", err
 	}
