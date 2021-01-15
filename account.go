@@ -145,10 +145,13 @@ func B58CodeFromSpend(viewPrivate string, spend *ristretto.Scalar) (string, erro
 
 func DecodeAccount(account string) (*PublicAddress, error) {
 	data := base58.Decode(account)
+	if len(data) < 4 {
+		return nil, fmt.Errorf("Invalid account %s", account)
+	}
 	sum := make([]byte, 4)
 	binary.LittleEndian.PutUint32(sum, crc32.ChecksumIEEE(data[4:]))
 	if bytes.Compare(sum, data[:4]) != 0 {
-		return nil, fmt.Errorf("Account invalid %s", account)
+		return nil, fmt.Errorf("Invalid account %s", account)
 	}
 	var wrapper block.PrintableWrapper
 	err := proto.Unmarshal(data[4:], &wrapper)
