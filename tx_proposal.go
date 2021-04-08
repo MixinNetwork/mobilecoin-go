@@ -118,11 +118,11 @@ type UnspentTxOut struct {
 }
 
 type PublicAddress struct {
-	ViewPublicKey              string `json:"view_public_key"`
-	SpendPublicKey             string `json:"spend_public_key"`
-	FogReportUrl               string `json:"fog_report_url"`
-	FogReportId                string `json:"fog_report_id"`
-	FogAuthorityFingerprintSig string `json:"fog_authority_fingerprint_sig"`
+	ViewPublicKey   string `json:"view_public_key"`
+	SpendPublicKey  string `json:"spend_public_key"`
+	FogReportUrl    string `json:"fog_report_url"`
+	FogReportId     string `json:"fog_report_id"`
+	FogAuthoritySig string `json:"fog_authority_sig"`
 }
 
 type Outlay struct {

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 MobileCoin Inc.
+// Copyright (c) 2018-2021 The MobileCoin Foundation
 
 // MUST BE KEPT IN SYNC WITH RUST CODE!
 
@@ -59,9 +59,9 @@ message AccountKey {
     /// which one to use when sending to this account.
     string fog_report_id = 4;
 
-    /// Optional fingerprint of fog authority key.
+    /// Optional fog authority subjectPublicKeyInfo.
     /// Empty when not in use.
-    bytes fog_authority_fingerprint = 5;
+    bytes fog_authority_spki = 5;
 }
 
 /// A public address, used to identify recipients.
@@ -82,10 +82,10 @@ message PublicAddress {
     /// which one to use when sending to this account.
     string fog_report_id = 4;
 
-    /// Signature of fog authority fingerprint using private key which
-    /// corresponds to view_public_key.
-    /// This should be a Schnorrkel signature.
-    bytes fog_authority_fingerprint_sig = 5;
+    /// View key signature over the fog authority subjectPublicKeyInfo.
+    ///
+    /// This must be parseable as a RistrettoSignature.
+    bytes fog_authority_sig = 5;
 }
 
 /// A KDF can be used to stretch a 32 byte secret into multiple secret private keys.
@@ -98,9 +98,9 @@ message RootIdentity {
     string fog_report_url = 2;
     /// Optional fog report id, same as in AccountKey
     string fog_report_id = 3;
-    /// Optional fingerprint of fog authority key.
+    /// Optional fog authority subjectPublicKeyInfo.
     /// Empty when not in use.
-    bytes fog_authority_fingerprint = 5;
+    bytes fog_authority_spki = 5;
 }
 
 /// A 32 byte secret used as input key material to derive private keys
@@ -269,27 +269,20 @@ message Receipt {
     Amount amount = 4;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// `watcher/api` crate
-///////////////////////////////////////////////////////////////////////////////
+/// The signature over an IAS JSON reponse, created by Intel
+message VerificationSignature {
+    bytes contents = 1;
+}
 
-/// The result code indicating whether the timestamp was found, can be tried again later, or will
-/// never be found with the current configuration of the service offering timestamps via the watcher.
-enum TimestampResultCode {
-    /// The default value for fixed32 is intentionally unused to avoid omitting this field.
-    UnusedField = 0;
-    /// The timestamp was found for at least one watched consensus validator.
-    TimestampFound = 1;
-    /// The timestamp was not found, but the watcher sync is behind for at least one watched consensus
-    /// validator. It is possible that the timestamp will be available once the watcher is fully synced.
-    WatcherBehind = 2;
-    /// The timestamp cannot be known with the service's current watcher configuration.
-    /// In this case, the watcher must be restarted to include in its watched URLs a sufficient
-    /// set of consensus validators so that at least one of those validators participated in
-    /// consensus for every block.
-    Unavailable = 3;
-    /// A WatcherDBError occurred when getting signatures and timestamps.
-    WatcherDatabaseError = 4;
-    /// A timestamp was requested for a block index out of bounds, e.g. 0.
-    BlockIndexOutOfBounds = 5;
+/// The IAS verification report response encoded as a protocol buffer
+message VerificationReport {
+    /// The IAS-generated signature over the response string
+    VerificationSignature sig = 1;
+
+    /// A list of byte strings representing the DER-encoded certificate
+    /// chain provided by IAS.
+    repeated bytes chain = 2;
+
+    /// The raw report body JSON, as a byte sequence
+    string http_body = 3;
 }

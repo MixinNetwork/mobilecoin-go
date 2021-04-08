@@ -4,11 +4,10 @@ package block
 
 import (
 	context "context"
-
-	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,12 +20,12 @@ const _ = grpc.SupportPackageIsVersion6
 type MobilecoindAPIClient interface {
 	// Monitors
 	AddMonitor(ctx context.Context, in *AddMonitorRequest, opts ...grpc.CallOption) (*AddMonitorResponse, error)
-	RemoveMonitor(ctx context.Context, in *RemoveMonitorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetMonitorList(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetMonitorListResponse, error)
+	RemoveMonitor(ctx context.Context, in *RemoveMonitorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetMonitorList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetMonitorListResponse, error)
 	GetMonitorStatus(ctx context.Context, in *GetMonitorStatusRequest, opts ...grpc.CallOption) (*GetMonitorStatusResponse, error)
 	GetUnspentTxOutList(ctx context.Context, in *GetUnspentTxOutListRequest, opts ...grpc.CallOption) (*GetUnspentTxOutListResponse, error)
 	// Utilities
-	GenerateEntropy(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error)
+	GenerateEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error)
 	GetAccountKey(ctx context.Context, in *GetAccountKeyRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error)
 	GetPublicAddress(ctx context.Context, in *GetPublicAddressRequest, opts ...grpc.CallOption) (*GetPublicAddressResponse, error)
 	// b58 Codes
@@ -43,7 +42,7 @@ type MobilecoindAPIClient interface {
 	GenerateTxFromTxOutList(ctx context.Context, in *GenerateTxFromTxOutListRequest, opts ...grpc.CallOption) (*GenerateTxFromTxOutListResponse, error)
 	SubmitTx(ctx context.Context, in *SubmitTxRequest, opts ...grpc.CallOption) (*SubmitTxResponse, error)
 	// Databases
-	GetLedgerInfo(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetLedgerInfoResponse, error)
+	GetLedgerInfo(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetLedgerInfoResponse, error)
 	GetBlockInfo(ctx context.Context, in *GetBlockInfoRequest, opts ...grpc.CallOption) (*GetBlockInfoResponse, error)
 	GetBlock(ctx context.Context, in *GetBlockRequest, opts ...grpc.CallOption) (*GetBlockResponse, error)
 	GetTxStatusAsSender(ctx context.Context, in *GetTxStatusAsSenderRequest, opts ...grpc.CallOption) (*GetTxStatusAsSenderResponse, error)
@@ -55,7 +54,7 @@ type MobilecoindAPIClient interface {
 	SendPayment(ctx context.Context, in *SendPaymentRequest, opts ...grpc.CallOption) (*SendPaymentResponse, error)
 	PayAddressCode(ctx context.Context, in *PayAddressCodeRequest, opts ...grpc.CallOption) (*SendPaymentResponse, error)
 	// Network status
-	GetNetworkStatus(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetNetworkStatusResponse, error)
+	GetNetworkStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetNetworkStatusResponse, error)
 }
 
 type mobilecoindAPIClient struct {
@@ -75,8 +74,8 @@ func (c *mobilecoindAPIClient) AddMonitor(ctx context.Context, in *AddMonitorReq
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) RemoveMonitor(ctx context.Context, in *RemoveMonitorRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *mobilecoindAPIClient) RemoveMonitor(ctx context.Context, in *RemoveMonitorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/RemoveMonitor", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -84,7 +83,7 @@ func (c *mobilecoindAPIClient) RemoveMonitor(ctx context.Context, in *RemoveMoni
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GetMonitorList(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetMonitorListResponse, error) {
+func (c *mobilecoindAPIClient) GetMonitorList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetMonitorListResponse, error) {
 	out := new(GetMonitorListResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetMonitorList", in, out, opts...)
 	if err != nil {
@@ -111,7 +110,7 @@ func (c *mobilecoindAPIClient) GetUnspentTxOutList(ctx context.Context, in *GetU
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GenerateEntropy(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error) {
+func (c *mobilecoindAPIClient) GenerateEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error) {
 	out := new(GenerateEntropyResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GenerateEntropy", in, out, opts...)
 	if err != nil {
@@ -237,7 +236,7 @@ func (c *mobilecoindAPIClient) SubmitTx(ctx context.Context, in *SubmitTxRequest
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GetLedgerInfo(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetLedgerInfoResponse, error) {
+func (c *mobilecoindAPIClient) GetLedgerInfo(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetLedgerInfoResponse, error) {
 	out := new(GetLedgerInfoResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetLedgerInfo", in, out, opts...)
 	if err != nil {
@@ -327,7 +326,7 @@ func (c *mobilecoindAPIClient) PayAddressCode(ctx context.Context, in *PayAddres
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GetNetworkStatus(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetNetworkStatusResponse, error) {
+func (c *mobilecoindAPIClient) GetNetworkStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetNetworkStatusResponse, error) {
 	out := new(GetNetworkStatusResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetNetworkStatus", in, out, opts...)
 	if err != nil {
@@ -342,12 +341,12 @@ func (c *mobilecoindAPIClient) GetNetworkStatus(ctx context.Context, in *empty.E
 type MobilecoindAPIServer interface {
 	// Monitors
 	AddMonitor(context.Context, *AddMonitorRequest) (*AddMonitorResponse, error)
-	RemoveMonitor(context.Context, *RemoveMonitorRequest) (*empty.Empty, error)
-	GetMonitorList(context.Context, *empty.Empty) (*GetMonitorListResponse, error)
+	RemoveMonitor(context.Context, *RemoveMonitorRequest) (*emptypb.Empty, error)
+	GetMonitorList(context.Context, *emptypb.Empty) (*GetMonitorListResponse, error)
 	GetMonitorStatus(context.Context, *GetMonitorStatusRequest) (*GetMonitorStatusResponse, error)
 	GetUnspentTxOutList(context.Context, *GetUnspentTxOutListRequest) (*GetUnspentTxOutListResponse, error)
 	// Utilities
-	GenerateEntropy(context.Context, *empty.Empty) (*GenerateEntropyResponse, error)
+	GenerateEntropy(context.Context, *emptypb.Empty) (*GenerateEntropyResponse, error)
 	GetAccountKey(context.Context, *GetAccountKeyRequest) (*GetAccountKeyResponse, error)
 	GetPublicAddress(context.Context, *GetPublicAddressRequest) (*GetPublicAddressResponse, error)
 	// b58 Codes
@@ -364,7 +363,7 @@ type MobilecoindAPIServer interface {
 	GenerateTxFromTxOutList(context.Context, *GenerateTxFromTxOutListRequest) (*GenerateTxFromTxOutListResponse, error)
 	SubmitTx(context.Context, *SubmitTxRequest) (*SubmitTxResponse, error)
 	// Databases
-	GetLedgerInfo(context.Context, *empty.Empty) (*GetLedgerInfoResponse, error)
+	GetLedgerInfo(context.Context, *emptypb.Empty) (*GetLedgerInfoResponse, error)
 	GetBlockInfo(context.Context, *GetBlockInfoRequest) (*GetBlockInfoResponse, error)
 	GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error)
 	GetTxStatusAsSender(context.Context, *GetTxStatusAsSenderRequest) (*GetTxStatusAsSenderResponse, error)
@@ -376,7 +375,7 @@ type MobilecoindAPIServer interface {
 	SendPayment(context.Context, *SendPaymentRequest) (*SendPaymentResponse, error)
 	PayAddressCode(context.Context, *PayAddressCodeRequest) (*SendPaymentResponse, error)
 	// Network status
-	GetNetworkStatus(context.Context, *empty.Empty) (*GetNetworkStatusResponse, error)
+	GetNetworkStatus(context.Context, *emptypb.Empty) (*GetNetworkStatusResponse, error)
 	mustEmbedUnimplementedMobilecoindAPIServer()
 }
 
@@ -387,10 +386,10 @@ type UnimplementedMobilecoindAPIServer struct {
 func (*UnimplementedMobilecoindAPIServer) AddMonitor(context.Context, *AddMonitorRequest) (*AddMonitorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddMonitor not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) RemoveMonitor(context.Context, *RemoveMonitorRequest) (*empty.Empty, error) {
+func (*UnimplementedMobilecoindAPIServer) RemoveMonitor(context.Context, *RemoveMonitorRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveMonitor not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GetMonitorList(context.Context, *empty.Empty) (*GetMonitorListResponse, error) {
+func (*UnimplementedMobilecoindAPIServer) GetMonitorList(context.Context, *emptypb.Empty) (*GetMonitorListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMonitorList not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GetMonitorStatus(context.Context, *GetMonitorStatusRequest) (*GetMonitorStatusResponse, error) {
@@ -399,7 +398,7 @@ func (*UnimplementedMobilecoindAPIServer) GetMonitorStatus(context.Context, *Get
 func (*UnimplementedMobilecoindAPIServer) GetUnspentTxOutList(context.Context, *GetUnspentTxOutListRequest) (*GetUnspentTxOutListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUnspentTxOutList not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GenerateEntropy(context.Context, *empty.Empty) (*GenerateEntropyResponse, error) {
+func (*UnimplementedMobilecoindAPIServer) GenerateEntropy(context.Context, *emptypb.Empty) (*GenerateEntropyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateEntropy not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GetAccountKey(context.Context, *GetAccountKeyRequest) (*GetAccountKeyResponse, error) {
@@ -441,7 +440,7 @@ func (*UnimplementedMobilecoindAPIServer) GenerateTxFromTxOutList(context.Contex
 func (*UnimplementedMobilecoindAPIServer) SubmitTx(context.Context, *SubmitTxRequest) (*SubmitTxResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitTx not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GetLedgerInfo(context.Context, *empty.Empty) (*GetLedgerInfoResponse, error) {
+func (*UnimplementedMobilecoindAPIServer) GetLedgerInfo(context.Context, *emptypb.Empty) (*GetLedgerInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLedgerInfo not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GetBlockInfo(context.Context, *GetBlockInfoRequest) (*GetBlockInfoResponse, error) {
@@ -471,7 +470,7 @@ func (*UnimplementedMobilecoindAPIServer) SendPayment(context.Context, *SendPaym
 func (*UnimplementedMobilecoindAPIServer) PayAddressCode(context.Context, *PayAddressCodeRequest) (*SendPaymentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PayAddressCode not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GetNetworkStatus(context.Context, *empty.Empty) (*GetNetworkStatusResponse, error) {
+func (*UnimplementedMobilecoindAPIServer) GetNetworkStatus(context.Context, *emptypb.Empty) (*GetNetworkStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNetworkStatus not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) mustEmbedUnimplementedMobilecoindAPIServer() {}
@@ -517,7 +516,7 @@ func _MobilecoindAPI_RemoveMonitor_Handler(srv interface{}, ctx context.Context,
 }
 
 func _MobilecoindAPI_GetMonitorList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -529,7 +528,7 @@ func _MobilecoindAPI_GetMonitorList_Handler(srv interface{}, ctx context.Context
 		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetMonitorList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GetMonitorList(ctx, req.(*empty.Empty))
+		return srv.(MobilecoindAPIServer).GetMonitorList(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -571,7 +570,7 @@ func _MobilecoindAPI_GetUnspentTxOutList_Handler(srv interface{}, ctx context.Co
 }
 
 func _MobilecoindAPI_GenerateEntropy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -583,7 +582,7 @@ func _MobilecoindAPI_GenerateEntropy_Handler(srv interface{}, ctx context.Contex
 		FullMethod: "/mobilecoind_api.MobilecoindAPI/GenerateEntropy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GenerateEntropy(ctx, req.(*empty.Empty))
+		return srv.(MobilecoindAPIServer).GenerateEntropy(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -823,7 +822,7 @@ func _MobilecoindAPI_SubmitTx_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _MobilecoindAPI_GetLedgerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -835,7 +834,7 @@ func _MobilecoindAPI_GetLedgerInfo_Handler(srv interface{}, ctx context.Context,
 		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetLedgerInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GetLedgerInfo(ctx, req.(*empty.Empty))
+		return srv.(MobilecoindAPIServer).GetLedgerInfo(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1003,7 +1002,7 @@ func _MobilecoindAPI_PayAddressCode_Handler(srv interface{}, ctx context.Context
 }
 
 func _MobilecoindAPI_GetNetworkStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1015,7 +1014,7 @@ func _MobilecoindAPI_GetNetworkStatus_Handler(srv interface{}, ctx context.Conte
 		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetNetworkStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GetNetworkStatus(ctx, req.(*empty.Empty))
+		return srv.(MobilecoindAPIServer).GetNetworkStatus(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

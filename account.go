@@ -161,11 +161,11 @@ func DecodeAccount(account string) (*PublicAddress, error) {
 	address := wrapper.GetPublicAddress()
 
 	return &PublicAddress{
-		ViewPublicKey:              hex.EncodeToString(address.GetViewPublicKey().GetData()),
-		SpendPublicKey:             hex.EncodeToString(address.GetSpendPublicKey().GetData()),
-		FogReportUrl:               address.GetFogReportUrl(),
-		FogReportId:                address.GetFogReportId(),
-		FogAuthorityFingerprintSig: hex.EncodeToString(address.GetFogAuthorityFingerprintSig()),
+		ViewPublicKey:   hex.EncodeToString(address.GetViewPublicKey().GetData()),
+		SpendPublicKey:  hex.EncodeToString(address.GetSpendPublicKey().GetData()),
+		FogReportUrl:    address.GetFogReportUrl(),
+		FogReportId:     address.GetFogReportId(),
+		FogAuthoritySig: hex.EncodeToString(address.GetFogAuthoritySig()),
 	}, nil
 }
 
