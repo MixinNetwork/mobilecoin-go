@@ -1,74 +1,93 @@
 package api
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	_ "embed"
+	"fmt"
+	"math"
+	"net/url"
 
+	"github.com/MixinNetwork/mobilecoin-go/block"
 	"github.com/bwesterb/go-ristretto"
-	"github.com/dchest/blake2b"
-	"golang.org/x/crypto/hkdf"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
+
+//go:embed 8395.crt
+var crt []byte
 
 const (
 	MAJOR_VERSION        = 1
 	LATEST_MINOR_VERSION = 0
+
+	EncryptedFogHintSize = 84
+	FooterSize           = 50
 )
 
-func FakeFogHint() ([]byte, error) {
-	var r ristretto.Scalar
-	var p ristretto.Point
-	p.ScalarMultBase(r.Rand())
-
-	return encryptInPlaceDetached(&p)
+// generate an EncryptedFogHint
+func fakeOnetimeHint() ([]byte, error) {
+	plaintext := make([]byte, EncryptedFogHintSize-FooterSize)
+	var key ristretto.Point
+	key.Rand()
+	return encryptFixedLength(&key, plaintext)
 }
 
-// Footersize = 50, + 32 for one curve point, + 2 bytes of magic / padding space for future needs
-func encryptInPlaceDetached(pub *ristretto.Point) ([]byte, error) {
-	ourPublic, sharedSecret := newSecret(pub)
-	curve_point_bytes := ourPublic.Bytes()
+func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
+	// fog_report_url is none
+	if len(recipient.FogReportUrl) == 0 {
+		hint, err := fakeOnetimeHint()
+		if err != nil {
+			return nil, 0, err
+		}
+		return hint, math.MaxUint64, nil
+	}
+	return nil, 0, nil
+}
 
-	//key & nonce of aes
-	key, nonce, err := kdfStep(sharedSecret)
+func FakeFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
+	return nil, 0, nil
+}
+
+func verifyFogSig() {
+}
+
+func getFogPubkey(recipient *PublicAddress) (*ristretto.Point, uint64, error) {
+	// Verify the authority signature chain
+	response, err := GetFogReportResponse(recipient.FogReportUrl)
+	if err != nil {
+		return nil, 0, err
+	}
+	verifyFogSig() // TODO
+	for _, report := range response.GetReports() {
+		if report.GetFogReportId() == recipient.FogReportId {
+		}
+	}
+	return nil, 0, fmt.Errorf("No Matching ReportId: %s", recipient.FogReportId)
+}
+
+func GetFogReportResponse(address string) (*block.ReportResponse, error) {
+	uri, err := url.Parse(address)
+	if err != nil {
+		return nil, err
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(crt) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+	}
+	creds := credentials.NewTLS(&tls.Config{RootCAs: cp})
+
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithTransportCredentials(creds))
+	conn, err := grpc.Dial(fmt.Sprintf("%s:443", uri.Host), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	aesgcm, err := cipher.NewGCM(b)
-	if err != nil {
-		return nil, err
-	}
-	buf := make([]byte, 34)
-	ciphertext := aesgcm.Seal(nil, nonce, buf, nil)
-	curve_point_bytes = append(curve_point_bytes, ciphertext[34:]...)
-	curve_point_bytes = append(curve_point_bytes, MAJOR_VERSION)
-	curve_point_bytes = append(curve_point_bytes, LATEST_MINOR_VERSION)
-	curve_point_bytes = append(ciphertext[:34], curve_point_bytes...)
-	return curve_point_bytes, err
-}
+	defer conn.Close()
+	client := block.NewReportAPIClient(conn)
 
-// our public, shared_secret
-func newSecret(pub *ristretto.Point) (*ristretto.Point, *ristretto.Point) {
-	var r ristretto.Scalar
-	r.Rand()
-
-	var p ristretto.Point
-	p.ScalarMultBase(&r)
-
-	var share ristretto.Point
-	return &p, share.PublicScalarMult(pub, &r)
-}
-
-/// This part must produce the key and IV/nonce for aes-gcm
-func kdfStep(secret *ristretto.Point) ([]byte, []byte, error) {
-	var okm [28]byte
-	key := hkdf.New(blake2b.New512, secret.Bytes(), []byte("dei-salty-box"), []byte("aead-key-iv"))
-	_, err := key.Read(okm[:])
-	if err != nil {
-		return nil, nil, err
-	}
-	return okm[:16], okm[16:], err
+	in := &block.ReportRequest{}
+	return client.GetReports(context.Background(), in)
 }

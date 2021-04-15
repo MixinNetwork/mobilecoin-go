@@ -17,11 +17,16 @@ type OutputWithSharedSecret struct {
 	Index        int
 }
 
+/*
+func createOutputWithFogHint(value uint64, recipient *PublicAddress, hint string, index int) (*OutputAndSharedSecret, string, error) {
+}
+*/
+
 func CreateOutput(value uint64, recipient *PublicAddress, index int) (*OutputAndSharedSecret, string, error) {
 	var r ristretto.Scalar
 	r.Rand()
 
-	hint, err := FakeFogHint()
+	hint, _, err := FakeFogHint(recipient)
 	if err != nil {
 		return nil, "", err
 	}
