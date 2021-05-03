@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/binary"
 	"fmt"
@@ -198,4 +199,16 @@ func (s *Signature) Size() int {
 		len(s.Reserved4) +
 		len(s.Q1) +
 		len(s.Q2)
+}
+
+func (s *Signature) MrSigner() [sha256.Size]byte {
+	return sha256.Sum256(s.Modulus[:])
+}
+
+func (s *Signature) ProductID() uint16 {
+	return binary.LittleEndian.Uint16(s.Isvprodid[:])
+}
+
+func (s *Signature) Version() uint16 {
+	return binary.LittleEndian.Uint16(s.Isvsvn[:])
 }
