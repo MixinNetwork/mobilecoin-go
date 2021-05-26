@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/ed25519"
 	"crypto/x509"
+	"encoding/hex"
 	"errors"
 
 	"github.com/ChainSafe/go-schnorrkel"
@@ -25,7 +26,9 @@ type FogResolver struct {
 	Verifier  *IngestReportVerifier
 }
 
-func verifyAuthority(recipient *block.PublicAddress, certs []*x509.Certificate, sig []byte) (bool, error) {
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/account-keys/src/account_keys.rs#L180
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L44
+func verifyAuthority(recipient *PublicAddress, certs []*x509.Certificate, sig string) (bool, error) {
 	cert, err := VerifiedRoot(certs)
 	if err != nil {
 		return false, err
@@ -40,12 +43,19 @@ func verifyAuthority(recipient *block.PublicAddress, certs []*x509.Certificate, 
 	signingCtx := []byte(SUPER_CONTEXT)
 	verifyTranscript := schnorrkel.NewSigningContext(signingCtx, cert.RawSubjectPublicKeyInfo)
 
-	view := recipient.ViewPublicKey.GetData()
+	view, err := hex.DecodeString(recipient.ViewPublicKey)
+	if err != nil {
+		return false, err
+	}
 	var view32 [32]byte
 	copy(view32[:], view)
 	public := schnorrkel.NewPublicKey(view32)
+	sigbuf, err := hex.DecodeString(sig)
+	if err != nil {
+		return false, err
+	}
 	var sig64 [64]byte
-	copy(sig64[:], sig)
+	copy(sig64[:], sigbuf)
 	signature := schnorrkel.Signature{}
 	err = signature.Decode(sig64)
 	if err != nil {
@@ -67,7 +77,8 @@ func mcPublicKey(cert *x509.Certificate) (ed25519.PublicKey, error) {
 	}
 }
 
-func verifyFogSig(recipient *block.PublicAddress, responses *block.ReportResponse) error {
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L22
+func verifyFogSig(recipient *PublicAddress, responses *block.ReportResponse) error {
 	var certs []*x509.Certificate
 	for _, buf := range responses.GetChain() {
 		cert, err := x509.ParseCertificate(buf)
@@ -81,8 +92,7 @@ func verifyFogSig(recipient *block.PublicAddress, responses *block.ReportRespons
 		return errors.New("Empty Chain Error")
 	}
 
-	authoritySig := recipient.FogAuthoritySig
-	valid, err := verifyAuthority(recipient, certs, authoritySig)
+	valid, err := verifyAuthority(recipient, certs, recipient.FogAuthoritySig)
 	if err != nil {
 		return err
 	}
@@ -96,11 +106,10 @@ func verifyFogSig(recipient *block.PublicAddress, responses *block.ReportRespons
 	if err != nil {
 		return err
 	}
-	_ = public
-	return nil
+	return VerifyReports(public, responses.GetReports(), responses.GetSignature())
 }
 
-func (resolver *FogResolver) GetFogPubkey(recipient *block.PublicAddress) error {
+func (resolver *FogResolver) GetFogPubkey(recipient *PublicAddress) error {
 	response := resolver.Responses[recipient.FogReportUrl]
 
 	err := verifyFogSig(recipient, response)

@@ -2,9 +2,16 @@ package api
 
 import (
 	"crypto/ed25519"
+	"errors"
 
 	"github.com/MixinNetwork/mobilecoin-go/block"
 )
 
-func VerifyReports(public ed25519.PublicKey, reports []block.Report, sig []byte) {
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L56
+func VerifyReports(public ed25519.PublicKey, reports []*block.Report, sig []byte) error {
+	b := ed25519.Verify(public, HashOfReport(reports), sig)
+	if !b {
+		return errors.New("Report Error")
+	}
+	return nil
 }

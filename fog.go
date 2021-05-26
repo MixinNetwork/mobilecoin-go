@@ -53,23 +53,6 @@ func FakeFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
 	return nil, 0, nil
 }
 
-func getFogPubkey(recipient *block.PublicAddress) (*ristretto.Point, uint64, error) {
-	// Verify the authority signature chain
-	response, err := GetFogReportResponse(recipient.FogReportUrl)
-	if err != nil {
-		return nil, 0, err
-	}
-	err = verifyFogSig(recipient, response) // TODO
-	if err != nil {
-		return nil, 0, err
-	}
-	for _, report := range response.GetReports() {
-		if report.GetFogReportId() == recipient.FogReportId {
-		}
-	}
-	return nil, 0, fmt.Errorf("No Matching ReportId: %s", recipient.FogReportId)
-}
-
 func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 	uri, err := url.Parse(address)
 	if err != nil {
