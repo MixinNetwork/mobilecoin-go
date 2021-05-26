@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"log"
 	"strconv"
 
 	"github.com/bwesterb/go-ristretto"
@@ -302,7 +301,6 @@ func InnerproductDomainSep(n uint64, t *merlin.Transcript) {
 }
 
 func appendBytes(field, data []byte, t *merlin.Transcript) {
-	log.Println(string(field), string(data), data)
 	t.AppendMessage(field, data)
 }
 

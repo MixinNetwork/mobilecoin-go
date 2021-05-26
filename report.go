@@ -43,7 +43,9 @@ func appendVerificationReport(report *block.VerificationReport, t *merlin.Transc
 	appendBytes([]byte("report"), []byte(AGGREGATE), t)
 	appendBytes([]byte("name"), []byte("VerificationReport"), t)
 	appendSig(report.GetSig(), t)
-	appendChains(report.GetChain(), t)
+	if len(report.GetChain()) > 0 {
+		appendChains(report.GetChain(), t)
+	}
 	appendHttpBody(report.GetHttpBody(), t)
 	appendBytes([]byte("report"), []byte(AGGREGATE_END), t)
 	appendBytes([]byte("name"), []byte("VerificationReport"), t)
