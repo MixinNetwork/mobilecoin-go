@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"log"
 	"strconv"
 
 	"github.com/bwesterb/go-ristretto"
@@ -286,26 +287,23 @@ func appendTxPrefix(tx *TxPrefix, t *merlin.Transcript) {
 	appendBytes([]byte("name"), []byte("TxPrefix"), t)
 }
 
-func appendScalar(label string, s *ristretto.Scalar, t *merlin.Transcript) {
-	appendBytes([]byte(label), s.Bytes(), t)
-}
-
-func appendPoint(label string, p *ristretto.Point, t *merlin.Transcript) {
-	appendBytes([]byte(label), p.Bytes(), t)
-}
-
 func appendInt64(label string, i uint64, t *merlin.Transcript) {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, i)
 	appendBytes([]byte(label), buf, t)
 }
 
-func innerproductDomainSep(n uint64, t *merlin.Transcript) {
+func InnerproductDomainSep(n uint64, t *merlin.Transcript) {
 	appendBytes([]byte("dom-sep"), []byte("ipp v1"), t)
 
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, n)
 	appendBytes([]byte("n"), bytes, t)
+}
+
+func appendBytes(field, data []byte, t *merlin.Transcript) {
+	log.Println(string(field), string(data), data)
+	t.AppendMessage(field, data)
 }
 
 func ChallengeScalar(label string, t *merlin.Transcript) *ristretto.Scalar {
@@ -317,6 +315,10 @@ func ChallengeScalar(label string, t *merlin.Transcript) *ristretto.Scalar {
 	return s.SetReduced(&dataBytes)
 }
 
-func appendBytes(field, data []byte, t *merlin.Transcript) {
-	t.AppendMessage(field, data)
+func AppendScalar(label string, s *ristretto.Scalar, t *merlin.Transcript) {
+	appendBytes([]byte(label), s.Bytes(), t)
+}
+
+func AppendPoint(label string, p *ristretto.Point, t *merlin.Transcript) {
+	appendBytes([]byte(label), p.Bytes(), t)
 }

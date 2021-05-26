@@ -184,9 +184,9 @@ func (d *DealerAwaitingProofShares) AssembleShares(proofs []*ProofShare) *RangeP
 		e_blinding.Add(&e_blinding, proofs[i].EBlinding)
 	}
 
-	appendScalar("t_x", &tx, d.Transcript)
-	appendScalar("t_x_blinding", &tx_blinding, d.Transcript)
-	appendScalar("e_blinding", &e_blinding, d.Transcript)
+	AppendScalar("t_x", &tx, d.Transcript)
+	AppendScalar("t_x_blinding", &tx_blinding, d.Transcript)
+	AppendScalar("e_blinding", &e_blinding, d.Transcript)
 
 	w := ChallengeScalar("w", d.Transcript)
 	var Q ristretto.Point

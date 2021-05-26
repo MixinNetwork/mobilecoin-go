@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed consensus-enclave.css
-var enclave []byte
+var consensusEnclave []byte
 
 const (
 	/// The length of the header1 field, in bytes
@@ -140,10 +140,10 @@ func parseSigFromBytes(buf []byte) *Signature {
 // TODO consensus-enclave.css will change once per quarter
 func ParseSignature() (*Signature, error) {
 	s := &Signature{}
-	if len(enclave) != s.Size() {
-		return nil, fmt.Errorf("Signature size invalid: %d, source %d", s.Size(), len(enclave))
+	if len(consensusEnclave) != s.Size() {
+		return nil, fmt.Errorf("Signature size invalid: %d, source %d", s.Size(), len(consensusEnclave))
 	}
-	s = parseSigFromBytes(enclave)
+	s = parseSigFromBytes(consensusEnclave)
 	if bytes.Compare(s.Header[:], HEADER1[:]) != 0 {
 		return nil, fmt.Errorf("Bad Header1")
 	}

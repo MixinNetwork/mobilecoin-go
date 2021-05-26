@@ -34,7 +34,7 @@ func fakeOnetimeHint() ([]byte, error) {
 	return encryptFixedLength(&key, plaintext)
 }
 
-func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
+func CreateFogHint(recipient *block.PublicAddress) ([]byte, uint64, error) {
 	// fog_report_url is none
 	if len(recipient.FogReportUrl) == 0 {
 		hint, err := fakeOnetimeHint()
@@ -43,6 +43,9 @@ func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
 		}
 		return hint, math.MaxUint64, nil
 	}
+
+	// validated_fog_pubkey := getFogPubkey(recipient)
+
 	return nil, 0, nil
 }
 
@@ -50,16 +53,16 @@ func FakeFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
 	return nil, 0, nil
 }
 
-func verifyFogSig() {
-}
-
-func getFogPubkey(recipient *PublicAddress) (*ristretto.Point, uint64, error) {
+func getFogPubkey(recipient *block.PublicAddress) (*ristretto.Point, uint64, error) {
 	// Verify the authority signature chain
 	response, err := GetFogReportResponse(recipient.FogReportUrl)
 	if err != nil {
 		return nil, 0, err
 	}
-	verifyFogSig() // TODO
+	err = verifyFogSig(recipient, response) // TODO
+	if err != nil {
+		return nil, 0, err
+	}
 	for _, report := range response.GetReports() {
 		if report.GetFogReportId() == recipient.FogReportId {
 		}

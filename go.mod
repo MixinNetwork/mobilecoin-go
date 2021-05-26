@@ -3,6 +3,7 @@ module github.com/MixinNetwork/mobilecoin-go
 go 1.16
 
 require (
+	github.com/ChainSafe/go-schnorrkel v0.0.0-20210318173838-ccb5cd955283 // indirect
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/bwesterb/go-ristretto v1.1.1
 	github.com/dchest/blake2b v1.0.0
