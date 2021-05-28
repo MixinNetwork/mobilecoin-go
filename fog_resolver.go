@@ -17,6 +17,7 @@ const (
 type FullyValidatedFogPubkey struct {
 }
 
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/ingest_report.rs#L23
 type IngestReportVerifier struct {
 	Verifier *Verifier
 }
@@ -109,12 +110,25 @@ func verifyFogSig(recipient *PublicAddress, responses *block.ReportResponse) err
 	return VerifyReports(public, responses.GetReports(), responses.GetSignature())
 }
 
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/lib.rs#L108
 func (resolver *FogResolver) GetFogPubkey(recipient *PublicAddress) error {
 	response := resolver.Responses[recipient.FogReportUrl]
+	if response == nil {
+		return errors.New("No Matching Report Response")
+	}
 
 	err := verifyFogSig(recipient, response)
 	if err != nil {
 		return err
 	}
-	return nil
+	for _, report := range response.Reports {
+		if recipient.FogReportId == report.GetFogReportId() {
+		}
+	}
+	return errors.New("No Matching Report Id")
+}
+
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/ingest_report.rs#L23
+// validate_ingest_ias_report
+func (resolver *FogResolver) ValidateIngestIasReport(report *block.VerificationReport) {
 }

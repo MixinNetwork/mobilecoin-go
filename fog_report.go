@@ -15,3 +15,7 @@ func VerifyReports(public ed25519.PublicKey, reports []*block.Report, sig []byte
 	}
 	return nil
 }
+
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/ingest_report.rs#L23
+func ValidateIngestIASReport(report *block.VerificationReport) {
+}

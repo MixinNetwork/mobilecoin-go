@@ -4,6 +4,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+
+	"github.com/MixinNetwork/mobilecoin-go/block"
 )
 
 type MrSignerVerifier struct {
@@ -29,7 +31,8 @@ func (verifier *MrSignerVerifier) AllowHardeningAdvisories(ids []string) {
 	verifier.SwIds = ids
 }
 
-// https://github.com/mobilecoinfoundation/mobilecoin/blob/e304f92088d2b4fde45bf4ae079c21353e41a89e/attest/core/src/lib.rs#L70 which feature should be used
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/e304f92088d2b4fde45bf4ae079c21353e41a89e/attest/core/src/lib.rs#L70
+// which feature should be used
 type Verifier struct {
 	TrustAnchors    []*x509.Certificate
 	StatusVerifiers []*MrSignerVerifier
@@ -68,4 +71,25 @@ func GetFogIngestVerifier() (*Verifier, error) {
 	}
 	verifier.AddMrSigner(mrSignerVerifier)
 	return verifier, nil
+}
+
+type IasReportVerifier struct {
+	TrustAnchors []*x509.Certificate
+	//ORVerifiers  []byte
+	//AndVerifiers []byte
+}
+
+type VerificationReportData struct {
+	ID        string
+	Timestamp string
+	Version   float64
+}
+
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/6abc426b2ad7a1d91e06c7ddab774f4055fb9df9/attest/core/src/ias/verifier.rs#L385
+// verify
+func (verifier *IasReportVerifier) Verify(report *block.VerificationReport) (*VerificationReportData, error) {
+	if len(report.Chain) == 0 {
+		return nil, errors.New("No Chain Error")
+	}
+	return nil, nil
 }

@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-//go:embed 8395.crt
+//go:embed credentials/8395.crt
 var crt []byte
 
 const (
@@ -44,7 +44,7 @@ func CreateFogHint(recipient *block.PublicAddress) ([]byte, uint64, error) {
 		return hint, math.MaxUint64, nil
 	}
 
-	// validated_fog_pubkey := getFogPubkey(recipient)
+	// validated_fog_pubkey := GetFogPubkey(recipient)
 
 	return nil, 0, nil
 }
