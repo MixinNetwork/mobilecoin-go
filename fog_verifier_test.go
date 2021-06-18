@@ -30,6 +30,8 @@ func TestFogVerifier(t *testing.T) {
 
 	cert, err = x509.ParseCertificate(derBytes)
 	assert.Nil(err)
+	log.Printf("Extensions :: %#v", cert.Extensions)
+	log.Printf("ExtraExtensions:: %#v", cert.ExtraExtensions)
 
 	pub := cert.PublicKey.(*rsa.PublicKey)
 

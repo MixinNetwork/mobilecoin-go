@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -91,5 +94,61 @@ func (verifier *IasReportVerifier) Verify(report *block.VerificationReport) (*Ve
 	if len(report.Chain) == 0 {
 		return nil, errors.New("No Chain Error")
 	}
+
+	hash := sha256.Sum256([]byte(report.HttpBody))
+
+	var parsedChains []*x509.Certificate
+	for _, chain := range report.Chain {
+		cert, err := x509.ParseCertificate(chain)
+		if err != nil {
+			return nil, err
+		}
+		parsedChains = append(parsedChains, cert)
+	}
+	// First, find any certs for the signer pubkey
+	var filteredChains []*x509.Certificate
+	for _, cert := range parsedChains {
+		switch cert.PublicKey.(type) {
+		case *rsa.PublicKey:
+			pub := cert.PublicKey.(*rsa.PublicKey)
+			err := rsa.VerifyPKCS1v15(pub, crypto.SHA256, hash[:], report.GetSig().GetContents())
+			if err == nil {
+				filteredChains = append(filteredChains, cert)
+			}
+		}
+	}
+
+	// Then construct a set of chains, one for each signer certificate
+	var signerChains [][]*x509.Certificate
+	for _, cert := range filteredChains {
+		signerChain := []*x509.Certificate{cert}
+	OUTER:
+		for {
+			// MAX_CHAIN_DEPTH = 5
+			if len(signerChain) > 5 {
+				signerChain = []*x509.Certificate{}
+				break
+			}
+
+			for _, cacert := range parsedChains {
+				existingCert := signerChain[len(signerChain)-1]
+				pub := existingCert.PublicKey.(*rsa.PublicKey)
+				if !pub.Equal(cacert.PublicKey) {
+					ca := *cacert
+					signerChain = append(signerChain, &ca)
+					goto OUTER
+				}
+			}
+			break
+		}
+		if len(signerChain) > 0 {
+			signerChains = append(signerChains, signerChain)
+		}
+	}
 	return nil, nil
+}
+
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/6abc426b2ad7a1d91e06c7ddab774f4055fb9df9/attest/core/src/ias/verify.rs#L261
+// TryFrom
+func TryFromVerificationReport(*VerificationReportData, error) {
 }

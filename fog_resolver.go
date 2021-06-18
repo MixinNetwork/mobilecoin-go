@@ -111,6 +111,7 @@ func verifyFogSig(recipient *PublicAddress, responses *block.ReportResponse) err
 }
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/lib.rs#L108
+// get_fog_pubkey
 func (resolver *FogResolver) GetFogPubkey(recipient *PublicAddress) error {
 	response := resolver.Responses[recipient.FogReportUrl]
 	if response == nil {
