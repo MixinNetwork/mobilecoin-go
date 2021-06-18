@@ -181,11 +181,11 @@ func appendCommitment(commitment string, t *merlin.Transcript) {
 	appendBytes([]byte("ristretto"), buf, t)
 }
 
-func appendMaskedValue(value uint64, t *merlin.Transcript) {
+func appendMaskedValue(value MaskedValue, t *merlin.Transcript) {
 	appendBytes([]byte("masked_value"), []byte(PRIMITIVE), t)
 
 	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, value)
+	binary.LittleEndian.PutUint64(bytes, uint64(value))
 	appendBytes([]byte("uint"), bytes, t)
 }
 

@@ -3,9 +3,7 @@ package api
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/bwesterb/go-ristretto"
 )
@@ -49,23 +47,10 @@ func NewInputCredential(utxo *UTXO, proofSet map[string]*TxOutMembershipProof, t
 	if err != nil {
 		return nil, err
 	}
-	var txOutM TxOutM
-	err = json.Unmarshal(data, &txOutM)
+	var txOut TxOut
+	err = json.Unmarshal(data, &txOut)
 	if err != nil {
 		return nil, err
-	}
-	maskedValue, err := strconv.ParseUint(txOutM.Amount.MaskedValue, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	txOut := &TxOut{
-		Amount: &Amount{
-			Commitment:  txOutM.Amount.Commitment,
-			MaskedValue: maskedValue,
-		},
-		TargetKey: txOutM.TargetKey,
-		PublicKey: txOutM.PublicKey,
-		EFogHint:  txOutM.EFogHint,
 	}
 	proof := proofSet[txOut.PublicKey]
 
@@ -83,7 +68,7 @@ func NewInputCredential(utxo *UTXO, proofSet map[string]*TxOutMembershipProof, t
 	}
 	if realIndex == 0 {
 		t := &TxOutWithProof{
-			TxOut: txOut,
+			TxOut: &txOut,
 			Proof: proof,
 		}
 		if len(tops) == 0 {
@@ -132,7 +117,7 @@ type OutputAndSharedSecret struct {
 
 func (o *OutputAndSharedSecret) GetValueWithBlinding() (uint64, *ristretto.Scalar) {
 	mask := GetValueMask(o.SharedSecret)
-	maskedValue := o.Output.Amount.MaskedValue
+	maskedValue := uint64(o.Output.Amount.MaskedValue)
 	value := maskedValue ^ mask
 
 	blinding := GetBlinding(o.SharedSecret)
@@ -146,7 +131,7 @@ type TransactionBuilder struct {
 	Fee                     uint64                   `json:"fee"`
 }
 
-func (tb *TransactionBuilder) Build() (*TxM, error) {
+func (tb *TransactionBuilder) Build() (*Tx, error) {
 	sort.Slice(tb.InputCredentials, func(i, j int) bool {
 		return tb.InputCredentials[i].Ring[0].PublicKey < tb.InputCredentials[j].Ring[0].PublicKey
 	})
@@ -181,50 +166,8 @@ func (tb *TransactionBuilder) Build() (*TxM, error) {
 		return nil, err
 	}
 
-	inputListM := make([]*TxInM, len(inputList))
-	for j := range inputList {
-		ringM := make([]*TxOutM, len(inputList[j].Ring))
-		for i := range inputList[j].Ring {
-			txOut := inputList[j].Ring[i]
-			ringM[i] = &TxOutM{
-				Amount: &AmountM{
-					Commitment:  txOut.Amount.Commitment,
-					MaskedValue: fmt.Sprint(txOut.Amount.MaskedValue),
-				},
-				TargetKey: txOut.TargetKey,
-				PublicKey: txOut.PublicKey,
-				EFogHint:  txOut.EFogHint,
-			}
-		}
-		inputListM[j] = &TxInM{
-			Ring:   ringM,
-			Proofs: inputList[j].Proofs,
-		}
-	}
-
-	outputListM := make([]*TxOutM, len(txPrefix.Outputs))
-	for i := range txPrefix.Outputs {
-		txOut := txPrefix.Outputs[i]
-		outputListM[i] = &TxOutM{
-			Amount: &AmountM{
-				Commitment:  txOut.Amount.Commitment,
-				MaskedValue: fmt.Sprint(txOut.Amount.MaskedValue),
-			},
-			TargetKey: txOut.TargetKey,
-			PublicKey: txOut.PublicKey,
-			EFogHint:  txOut.EFogHint,
-		}
-	}
-
-	txPrefixM := &TxPrefixM{
-		Inputs:         inputListM,
-		Outputs:        outputListM,
-		Fee:            fmt.Sprint(tb.Fee),
-		TombstoneBlock: fmt.Sprint(tb.TombstoneBlock),
-	}
-
-	return &TxM{
-		Prefix:    txPrefixM,
+	return &Tx{
+		Prefix:    txPrefix,
 		Signature: signatures,
 	}, nil
 }
