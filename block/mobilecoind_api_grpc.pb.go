@@ -25,8 +25,10 @@ type MobilecoindAPIClient interface {
 	GetMonitorStatus(ctx context.Context, in *GetMonitorStatusRequest, opts ...grpc.CallOption) (*GetMonitorStatusResponse, error)
 	GetUnspentTxOutList(ctx context.Context, in *GetUnspentTxOutListRequest, opts ...grpc.CallOption) (*GetUnspentTxOutListResponse, error)
 	// Utilities
-	GenerateEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error)
-	GetAccountKey(ctx context.Context, in *GetAccountKeyRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error)
+	GenerateRootEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateRootEntropyResponse, error)
+	GenerateMnemonic(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateMnemonicResponse, error)
+	GetAccountKeyFromRootEntropy(ctx context.Context, in *GetAccountKeyFromRootEntropyRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error)
+	GetAccountKeyFromMnemonic(ctx context.Context, in *GetAccountKeyFromMnemonicRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error)
 	GetPublicAddress(ctx context.Context, in *GetPublicAddressRequest, opts ...grpc.CallOption) (*GetPublicAddressResponse, error)
 	// b58 Codes
 	ParseRequestCode(ctx context.Context, in *ParseRequestCodeRequest, opts ...grpc.CallOption) (*ParseRequestCodeResponse, error)
@@ -36,6 +38,8 @@ type MobilecoindAPIClient interface {
 	ParseAddressCode(ctx context.Context, in *ParseAddressCodeRequest, opts ...grpc.CallOption) (*ParseAddressCodeResponse, error)
 	CreateAddressCode(ctx context.Context, in *CreateAddressCodeRequest, opts ...grpc.CallOption) (*CreateAddressCodeResponse, error)
 	// Txs
+	GetMixins(ctx context.Context, in *GetMixinsRequest, opts ...grpc.CallOption) (*GetMixinsResponse, error)
+	GetMembershipProofs(ctx context.Context, in *GetMembershipProofsRequest, opts ...grpc.CallOption) (*GetMembershipProofsResponse, error)
 	GenerateTx(ctx context.Context, in *GenerateTxRequest, opts ...grpc.CallOption) (*GenerateTxResponse, error)
 	GenerateOptimizationTx(ctx context.Context, in *GenerateOptimizationTxRequest, opts ...grpc.CallOption) (*GenerateOptimizationTxResponse, error)
 	GenerateTransferCodeTx(ctx context.Context, in *GenerateTransferCodeTxRequest, opts ...grpc.CallOption) (*GenerateTransferCodeTxResponse, error)
@@ -45,7 +49,7 @@ type MobilecoindAPIClient interface {
 	GetLedgerInfo(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetLedgerInfoResponse, error)
 	GetBlockInfo(ctx context.Context, in *GetBlockInfoRequest, opts ...grpc.CallOption) (*GetBlockInfoResponse, error)
 	GetBlock(ctx context.Context, in *GetBlockRequest, opts ...grpc.CallOption) (*GetBlockResponse, error)
-	GetTxStatusAsSender(ctx context.Context, in *GetTxStatusAsSenderRequest, opts ...grpc.CallOption) (*GetTxStatusAsSenderResponse, error)
+	GetTxStatusAsSender(ctx context.Context, in *SubmitTxResponse, opts ...grpc.CallOption) (*GetTxStatusAsSenderResponse, error)
 	GetTxStatusAsReceiver(ctx context.Context, in *GetTxStatusAsReceiverRequest, opts ...grpc.CallOption) (*GetTxStatusAsReceiverResponse, error)
 	GetProcessedBlock(ctx context.Context, in *GetProcessedBlockRequest, opts ...grpc.CallOption) (*GetProcessedBlockResponse, error)
 	GetBlockIndexByTxPubKey(ctx context.Context, in *GetBlockIndexByTxPubKeyRequest, opts ...grpc.CallOption) (*GetBlockIndexByTxPubKeyResponse, error)
@@ -55,6 +59,9 @@ type MobilecoindAPIClient interface {
 	PayAddressCode(ctx context.Context, in *PayAddressCodeRequest, opts ...grpc.CallOption) (*SendPaymentResponse, error)
 	// Network status
 	GetNetworkStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetNetworkStatusResponse, error)
+	// Database encryption
+	SetDbPassword(ctx context.Context, in *SetDbPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UnlockDb(ctx context.Context, in *UnlockDbRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type mobilecoindAPIClient struct {
@@ -110,18 +117,36 @@ func (c *mobilecoindAPIClient) GetUnspentTxOutList(ctx context.Context, in *GetU
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GenerateEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateEntropyResponse, error) {
-	out := new(GenerateEntropyResponse)
-	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GenerateEntropy", in, out, opts...)
+func (c *mobilecoindAPIClient) GenerateRootEntropy(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateRootEntropyResponse, error) {
+	out := new(GenerateRootEntropyResponse)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GenerateRootEntropy", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GetAccountKey(ctx context.Context, in *GetAccountKeyRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error) {
+func (c *mobilecoindAPIClient) GenerateMnemonic(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GenerateMnemonicResponse, error) {
+	out := new(GenerateMnemonicResponse)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GenerateMnemonic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mobilecoindAPIClient) GetAccountKeyFromRootEntropy(ctx context.Context, in *GetAccountKeyFromRootEntropyRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error) {
 	out := new(GetAccountKeyResponse)
-	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetAccountKey", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetAccountKeyFromRootEntropy", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mobilecoindAPIClient) GetAccountKeyFromMnemonic(ctx context.Context, in *GetAccountKeyFromMnemonicRequest, opts ...grpc.CallOption) (*GetAccountKeyResponse, error) {
+	out := new(GetAccountKeyResponse)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetAccountKeyFromMnemonic", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +210,24 @@ func (c *mobilecoindAPIClient) ParseAddressCode(ctx context.Context, in *ParseAd
 func (c *mobilecoindAPIClient) CreateAddressCode(ctx context.Context, in *CreateAddressCodeRequest, opts ...grpc.CallOption) (*CreateAddressCodeResponse, error) {
 	out := new(CreateAddressCodeResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/CreateAddressCode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mobilecoindAPIClient) GetMixins(ctx context.Context, in *GetMixinsRequest, opts ...grpc.CallOption) (*GetMixinsResponse, error) {
+	out := new(GetMixinsResponse)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetMixins", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mobilecoindAPIClient) GetMembershipProofs(ctx context.Context, in *GetMembershipProofsRequest, opts ...grpc.CallOption) (*GetMembershipProofsResponse, error) {
+	out := new(GetMembershipProofsResponse)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetMembershipProofs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +306,7 @@ func (c *mobilecoindAPIClient) GetBlock(ctx context.Context, in *GetBlockRequest
 	return out, nil
 }
 
-func (c *mobilecoindAPIClient) GetTxStatusAsSender(ctx context.Context, in *GetTxStatusAsSenderRequest, opts ...grpc.CallOption) (*GetTxStatusAsSenderResponse, error) {
+func (c *mobilecoindAPIClient) GetTxStatusAsSender(ctx context.Context, in *SubmitTxResponse, opts ...grpc.CallOption) (*GetTxStatusAsSenderResponse, error) {
 	out := new(GetTxStatusAsSenderResponse)
 	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/GetTxStatusAsSender", in, out, opts...)
 	if err != nil {
@@ -335,6 +378,24 @@ func (c *mobilecoindAPIClient) GetNetworkStatus(ctx context.Context, in *emptypb
 	return out, nil
 }
 
+func (c *mobilecoindAPIClient) SetDbPassword(ctx context.Context, in *SetDbPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/SetDbPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mobilecoindAPIClient) UnlockDb(ctx context.Context, in *UnlockDbRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/mobilecoind_api.MobilecoindAPI/UnlockDb", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MobilecoindAPIServer is the server API for MobilecoindAPI service.
 // All implementations must embed UnimplementedMobilecoindAPIServer
 // for forward compatibility
@@ -346,8 +407,10 @@ type MobilecoindAPIServer interface {
 	GetMonitorStatus(context.Context, *GetMonitorStatusRequest) (*GetMonitorStatusResponse, error)
 	GetUnspentTxOutList(context.Context, *GetUnspentTxOutListRequest) (*GetUnspentTxOutListResponse, error)
 	// Utilities
-	GenerateEntropy(context.Context, *emptypb.Empty) (*GenerateEntropyResponse, error)
-	GetAccountKey(context.Context, *GetAccountKeyRequest) (*GetAccountKeyResponse, error)
+	GenerateRootEntropy(context.Context, *emptypb.Empty) (*GenerateRootEntropyResponse, error)
+	GenerateMnemonic(context.Context, *emptypb.Empty) (*GenerateMnemonicResponse, error)
+	GetAccountKeyFromRootEntropy(context.Context, *GetAccountKeyFromRootEntropyRequest) (*GetAccountKeyResponse, error)
+	GetAccountKeyFromMnemonic(context.Context, *GetAccountKeyFromMnemonicRequest) (*GetAccountKeyResponse, error)
 	GetPublicAddress(context.Context, *GetPublicAddressRequest) (*GetPublicAddressResponse, error)
 	// b58 Codes
 	ParseRequestCode(context.Context, *ParseRequestCodeRequest) (*ParseRequestCodeResponse, error)
@@ -357,6 +420,8 @@ type MobilecoindAPIServer interface {
 	ParseAddressCode(context.Context, *ParseAddressCodeRequest) (*ParseAddressCodeResponse, error)
 	CreateAddressCode(context.Context, *CreateAddressCodeRequest) (*CreateAddressCodeResponse, error)
 	// Txs
+	GetMixins(context.Context, *GetMixinsRequest) (*GetMixinsResponse, error)
+	GetMembershipProofs(context.Context, *GetMembershipProofsRequest) (*GetMembershipProofsResponse, error)
 	GenerateTx(context.Context, *GenerateTxRequest) (*GenerateTxResponse, error)
 	GenerateOptimizationTx(context.Context, *GenerateOptimizationTxRequest) (*GenerateOptimizationTxResponse, error)
 	GenerateTransferCodeTx(context.Context, *GenerateTransferCodeTxRequest) (*GenerateTransferCodeTxResponse, error)
@@ -366,7 +431,7 @@ type MobilecoindAPIServer interface {
 	GetLedgerInfo(context.Context, *emptypb.Empty) (*GetLedgerInfoResponse, error)
 	GetBlockInfo(context.Context, *GetBlockInfoRequest) (*GetBlockInfoResponse, error)
 	GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error)
-	GetTxStatusAsSender(context.Context, *GetTxStatusAsSenderRequest) (*GetTxStatusAsSenderResponse, error)
+	GetTxStatusAsSender(context.Context, *SubmitTxResponse) (*GetTxStatusAsSenderResponse, error)
 	GetTxStatusAsReceiver(context.Context, *GetTxStatusAsReceiverRequest) (*GetTxStatusAsReceiverResponse, error)
 	GetProcessedBlock(context.Context, *GetProcessedBlockRequest) (*GetProcessedBlockResponse, error)
 	GetBlockIndexByTxPubKey(context.Context, *GetBlockIndexByTxPubKeyRequest) (*GetBlockIndexByTxPubKeyResponse, error)
@@ -376,6 +441,9 @@ type MobilecoindAPIServer interface {
 	PayAddressCode(context.Context, *PayAddressCodeRequest) (*SendPaymentResponse, error)
 	// Network status
 	GetNetworkStatus(context.Context, *emptypb.Empty) (*GetNetworkStatusResponse, error)
+	// Database encryption
+	SetDbPassword(context.Context, *SetDbPasswordRequest) (*emptypb.Empty, error)
+	UnlockDb(context.Context, *UnlockDbRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedMobilecoindAPIServer()
 }
 
@@ -398,11 +466,17 @@ func (*UnimplementedMobilecoindAPIServer) GetMonitorStatus(context.Context, *Get
 func (*UnimplementedMobilecoindAPIServer) GetUnspentTxOutList(context.Context, *GetUnspentTxOutListRequest) (*GetUnspentTxOutListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUnspentTxOutList not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GenerateEntropy(context.Context, *emptypb.Empty) (*GenerateEntropyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateEntropy not implemented")
+func (*UnimplementedMobilecoindAPIServer) GenerateRootEntropy(context.Context, *emptypb.Empty) (*GenerateRootEntropyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateRootEntropy not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GetAccountKey(context.Context, *GetAccountKeyRequest) (*GetAccountKeyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAccountKey not implemented")
+func (*UnimplementedMobilecoindAPIServer) GenerateMnemonic(context.Context, *emptypb.Empty) (*GenerateMnemonicResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateMnemonic not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) GetAccountKeyFromRootEntropy(context.Context, *GetAccountKeyFromRootEntropyRequest) (*GetAccountKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAccountKeyFromRootEntropy not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) GetAccountKeyFromMnemonic(context.Context, *GetAccountKeyFromMnemonicRequest) (*GetAccountKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAccountKeyFromMnemonic not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GetPublicAddress(context.Context, *GetPublicAddressRequest) (*GetPublicAddressResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPublicAddress not implemented")
@@ -424,6 +498,12 @@ func (*UnimplementedMobilecoindAPIServer) ParseAddressCode(context.Context, *Par
 }
 func (*UnimplementedMobilecoindAPIServer) CreateAddressCode(context.Context, *CreateAddressCodeRequest) (*CreateAddressCodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAddressCode not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) GetMixins(context.Context, *GetMixinsRequest) (*GetMixinsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMixins not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) GetMembershipProofs(context.Context, *GetMembershipProofsRequest) (*GetMembershipProofsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMembershipProofs not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GenerateTx(context.Context, *GenerateTxRequest) (*GenerateTxResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateTx not implemented")
@@ -449,7 +529,7 @@ func (*UnimplementedMobilecoindAPIServer) GetBlockInfo(context.Context, *GetBloc
 func (*UnimplementedMobilecoindAPIServer) GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBlock not implemented")
 }
-func (*UnimplementedMobilecoindAPIServer) GetTxStatusAsSender(context.Context, *GetTxStatusAsSenderRequest) (*GetTxStatusAsSenderResponse, error) {
+func (*UnimplementedMobilecoindAPIServer) GetTxStatusAsSender(context.Context, *SubmitTxResponse) (*GetTxStatusAsSenderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTxStatusAsSender not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) GetTxStatusAsReceiver(context.Context, *GetTxStatusAsReceiverRequest) (*GetTxStatusAsReceiverResponse, error) {
@@ -472,6 +552,12 @@ func (*UnimplementedMobilecoindAPIServer) PayAddressCode(context.Context, *PayAd
 }
 func (*UnimplementedMobilecoindAPIServer) GetNetworkStatus(context.Context, *emptypb.Empty) (*GetNetworkStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNetworkStatus not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) SetDbPassword(context.Context, *SetDbPasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetDbPassword not implemented")
+}
+func (*UnimplementedMobilecoindAPIServer) UnlockDb(context.Context, *UnlockDbRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnlockDb not implemented")
 }
 func (*UnimplementedMobilecoindAPIServer) mustEmbedUnimplementedMobilecoindAPIServer() {}
 
@@ -569,38 +655,74 @@ func _MobilecoindAPI_GetUnspentTxOutList_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MobilecoindAPI_GenerateEntropy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MobilecoindAPI_GenerateRootEntropy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MobilecoindAPIServer).GenerateEntropy(ctx, in)
+		return srv.(MobilecoindAPIServer).GenerateRootEntropy(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/mobilecoind_api.MobilecoindAPI/GenerateEntropy",
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GenerateRootEntropy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GenerateEntropy(ctx, req.(*emptypb.Empty))
+		return srv.(MobilecoindAPIServer).GenerateRootEntropy(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MobilecoindAPI_GetAccountKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAccountKeyRequest)
+func _MobilecoindAPI_GenerateMnemonic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MobilecoindAPIServer).GetAccountKey(ctx, in)
+		return srv.(MobilecoindAPIServer).GenerateMnemonic(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetAccountKey",
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GenerateMnemonic",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GetAccountKey(ctx, req.(*GetAccountKeyRequest))
+		return srv.(MobilecoindAPIServer).GenerateMnemonic(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MobilecoindAPI_GetAccountKeyFromRootEntropy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountKeyFromRootEntropyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).GetAccountKeyFromRootEntropy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetAccountKeyFromRootEntropy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).GetAccountKeyFromRootEntropy(ctx, req.(*GetAccountKeyFromRootEntropyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MobilecoindAPI_GetAccountKeyFromMnemonic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountKeyFromMnemonicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).GetAccountKeyFromMnemonic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetAccountKeyFromMnemonic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).GetAccountKeyFromMnemonic(ctx, req.(*GetAccountKeyFromMnemonicRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -727,6 +849,42 @@ func _MobilecoindAPI_CreateAddressCode_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MobilecoindAPIServer).CreateAddressCode(ctx, req.(*CreateAddressCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MobilecoindAPI_GetMixins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMixinsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).GetMixins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetMixins",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).GetMixins(ctx, req.(*GetMixinsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MobilecoindAPI_GetMembershipProofs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMembershipProofsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).GetMembershipProofs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetMembershipProofs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).GetMembershipProofs(ctx, req.(*GetMembershipProofsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -876,7 +1034,7 @@ func _MobilecoindAPI_GetBlock_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _MobilecoindAPI_GetTxStatusAsSender_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTxStatusAsSenderRequest)
+	in := new(SubmitTxResponse)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -888,7 +1046,7 @@ func _MobilecoindAPI_GetTxStatusAsSender_Handler(srv interface{}, ctx context.Co
 		FullMethod: "/mobilecoind_api.MobilecoindAPI/GetTxStatusAsSender",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MobilecoindAPIServer).GetTxStatusAsSender(ctx, req.(*GetTxStatusAsSenderRequest))
+		return srv.(MobilecoindAPIServer).GetTxStatusAsSender(ctx, req.(*SubmitTxResponse))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1019,6 +1177,42 @@ func _MobilecoindAPI_GetNetworkStatus_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MobilecoindAPI_SetDbPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDbPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).SetDbPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/SetDbPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).SetDbPassword(ctx, req.(*SetDbPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MobilecoindAPI_UnlockDb_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnlockDbRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MobilecoindAPIServer).UnlockDb(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mobilecoind_api.MobilecoindAPI/UnlockDb",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MobilecoindAPIServer).UnlockDb(ctx, req.(*UnlockDbRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _MobilecoindAPI_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "mobilecoind_api.MobilecoindAPI",
 	HandlerType: (*MobilecoindAPIServer)(nil),
@@ -1044,12 +1238,20 @@ var _MobilecoindAPI_serviceDesc = grpc.ServiceDesc{
 			Handler:    _MobilecoindAPI_GetUnspentTxOutList_Handler,
 		},
 		{
-			MethodName: "GenerateEntropy",
-			Handler:    _MobilecoindAPI_GenerateEntropy_Handler,
+			MethodName: "GenerateRootEntropy",
+			Handler:    _MobilecoindAPI_GenerateRootEntropy_Handler,
 		},
 		{
-			MethodName: "GetAccountKey",
-			Handler:    _MobilecoindAPI_GetAccountKey_Handler,
+			MethodName: "GenerateMnemonic",
+			Handler:    _MobilecoindAPI_GenerateMnemonic_Handler,
+		},
+		{
+			MethodName: "GetAccountKeyFromRootEntropy",
+			Handler:    _MobilecoindAPI_GetAccountKeyFromRootEntropy_Handler,
+		},
+		{
+			MethodName: "GetAccountKeyFromMnemonic",
+			Handler:    _MobilecoindAPI_GetAccountKeyFromMnemonic_Handler,
 		},
 		{
 			MethodName: "GetPublicAddress",
@@ -1078,6 +1280,14 @@ var _MobilecoindAPI_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateAddressCode",
 			Handler:    _MobilecoindAPI_CreateAddressCode_Handler,
+		},
+		{
+			MethodName: "GetMixins",
+			Handler:    _MobilecoindAPI_GetMixins_Handler,
+		},
+		{
+			MethodName: "GetMembershipProofs",
+			Handler:    _MobilecoindAPI_GetMembershipProofs_Handler,
 		},
 		{
 			MethodName: "GenerateTx",
@@ -1142,6 +1352,14 @@ var _MobilecoindAPI_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNetworkStatus",
 			Handler:    _MobilecoindAPI_GetNetworkStatus_Handler,
+		},
+		{
+			MethodName: "SetDbPassword",
+			Handler:    _MobilecoindAPI_SetDbPassword_Handler,
+		},
+		{
+			MethodName: "UnlockDb",
+			Handler:    _MobilecoindAPI_UnlockDb_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
