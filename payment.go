@@ -29,7 +29,7 @@ func GetValueWithBlinding(output *TxOut, viewPrivate *ristretto.Scalar) (uint64,
 	secret := createSharedSecret(hexToPoint(output.PublicKey), viewPrivate)
 
 	mask := GetValueMask(secret)
-	maskedValue := output.Amount.MaskedValue
+	maskedValue := uint64(output.Amount.MaskedValue)
 	value := maskedValue ^ mask
 
 	blinding := GetBlinding(secret)

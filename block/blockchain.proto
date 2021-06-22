@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 MobileCoin Inc.
+// Copyright (c) 2018-2021 The MobileCoin Foundation
 
 // Blockchain-related data types.
 
@@ -8,6 +8,7 @@ import "external.proto";
 package blockchain;
 
 option go_package = ".;block";
+
 // Block ID.
 message BlockID {
     bytes data = 1;

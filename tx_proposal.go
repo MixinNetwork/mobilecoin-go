@@ -1,21 +1,70 @@
 package api
 
-// For mobilecoin rpc MaskedValue is string
-type AmountM struct {
-	Commitment  string `json:"commitment"`
-	MaskedValue string `json:"masked_value"`
+import "strconv"
+
+type MaskedValue uint64
+
+func (mv MaskedValue) MarshalJSON() ([]byte, error) {
+	s := strconv.FormatUint(uint64(mv), 10)
+	return []byte(strconv.Quote(s)), nil
 }
 
-type TxOutM struct {
-	Amount    *AmountM `json:"amount"`
-	TargetKey string   `json:"target_key"`
-	PublicKey string   `json:"public_key"`
-	EFogHint  string   `json:"e_fog_hint"`
+func (mv *MaskedValue) UnmarshalJSON(data []byte) error {
+	dd, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	u, err := strconv.ParseUint(dd, 10, 64)
+	if err != nil {
+		return err
+	}
+	*mv = MaskedValue(u)
+	return nil
+}
+
+type FeeValue uint64
+
+func (fv FeeValue) MarshalJSON() ([]byte, error) {
+	s := strconv.FormatUint(uint64(fv), 10)
+	return []byte(strconv.Quote(s)), nil
+}
+
+func (fv *FeeValue) UnmarshalJSON(data []byte) error {
+	dd, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	u, err := strconv.ParseUint(dd, 10, 64)
+	if err != nil {
+		return err
+	}
+	*fv = FeeValue(u)
+	return nil
+}
+
+type TombstoneValue uint64
+
+func (tv TombstoneValue) MarshalJSON() ([]byte, error) {
+	s := strconv.FormatUint(uint64(tv), 10)
+	return []byte(strconv.Quote(s)), nil
+}
+
+func (tv *TombstoneValue) UnmarshalJSON(data []byte) error {
+	dd, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	u, err := strconv.ParseUint(dd, 10, 64)
+	if err != nil {
+		return err
+	}
+	*tv = TombstoneValue(u)
+	return nil
 }
 
 type Amount struct {
-	Commitment  string `json:"commitment"`
-	MaskedValue uint64 `json:"masked_value"`
+	Commitment  string      `json:"commitment"`
+	MaskedValue MaskedValue `json:"masked_value"`
 }
 
 type TxOut struct {
@@ -41,19 +90,9 @@ type TxOutMembershipProof struct {
 	Elements     []*TxOutMembershipElement `json:"elements"`
 }
 
-type TxOutWithProofM struct {
-	TxOut *TxOutM               `json:"tx_out"`
-	Proof *TxOutMembershipProof `json:"proof"`
-}
-
 type TxOutWithProof struct {
 	TxOut *TxOut                `json:"tx_out"`
 	Proof *TxOutMembershipProof `json:"proof"`
-}
-
-type ProofsM struct {
-	Ring  []*TxOutWithProofM   `json:"ring"`
-	Rings [][]*TxOutWithProofM `json:"rings"`
 }
 
 type Proofs struct {
@@ -61,28 +100,16 @@ type Proofs struct {
 	Rings [][]*TxOutWithProof `json:"rings"`
 }
 
-type TxInM struct {
-	Ring   []*TxOutM               `json:"ring"`
-	Proofs []*TxOutMembershipProof `json:"proofs"`
-}
-
 type TxIn struct {
 	Ring   []*TxOut                `json:"ring"`
 	Proofs []*TxOutMembershipProof `json:"proofs"`
 }
 
-type TxPrefixM struct {
-	Inputs         []*TxInM  `json:"inputs"`
-	Outputs        []*TxOutM `json:"outputs"`
-	Fee            string    `json:"fee"`
-	TombstoneBlock string    `json:"tombstone_block"`
-}
-
 type TxPrefix struct {
-	Inputs         []*TxIn  `json:"inputs"`
-	Outputs        []*TxOut `json:"outputs"`
-	Fee            uint64   `json:"fee"`
-	TombstoneBlock uint64   `json:"tombstone_block"`
+	Inputs         []*TxIn        `json:"inputs"`
+	Outputs        []*TxOut       `json:"outputs"`
+	Fee            FeeValue       `json:"fee"`
+	TombstoneBlock TombstoneValue `json:"tombstone_block"`
 }
 
 type RingMLSAG struct {
@@ -97,24 +124,19 @@ type SignatureRctBulletproofs struct {
 	RangeProofs             string       `json:"range_proofs"`
 }
 
-type TxM struct {
-	Prefix    *TxPrefixM                `json:"prefix"`
-	Signature *SignatureRctBulletproofs `json:"signature"`
-}
-
 type Tx struct {
 	Prefix    *TxPrefix                 `json:"prefix"`
 	Signature *SignatureRctBulletproofs `json:"signature"`
 }
 
 type UnspentTxOut struct {
-	TxOut                   *TxOutM `json:"tx_out"`
-	SubaddressIndex         uint64  `json:"subaddress_index"`
-	KeyImage                string  `json:"key_image"`
-	Value                   string  `json:"value"`
-	AttemptedSpendHeight    uint64  `json:"attempted_spend_height"`
-	AttemptedSpendTombstone uint64  `json:"attempted_spend_tombstone"`
-	MonitorId               string  `json:"monitor_id"`
+	TxOut                   *TxOut `json:"tx_out"`
+	SubaddressIndex         uint64 `json:"subaddress_index"`
+	KeyImage                string `json:"key_image"`
+	Value                   string `json:"value"`
+	AttemptedSpendHeight    uint64 `json:"attempted_spend_height"`
+	AttemptedSpendTombstone uint64 `json:"attempted_spend_tombstone"`
+	MonitorId               string `json:"monitor_id"`
 }
 
 type PublicAddress struct {
@@ -130,10 +152,10 @@ type Outlay struct {
 	Receiver *PublicAddress `json:"receiver"`
 }
 
-type TxProposalM struct {
+type TxProposal struct {
 	InputList                 []*UnspentTxOut `json:"input_list"`
 	OutlayList                []*Outlay       `json:"outlay_list"`
-	Tx                        *TxM            `json:"tx"`
+	Tx                        *Tx             `json:"tx"`
 	Fee                       uint64          `json:"fee"`
 	OutlayIndexToTxOutIndex   [][]int         `json:"outlay_index_to_tx_out_index"`
 	OutlayConfirmationNumbers [][]int         `json:"outlay_confirmation_numbers"`
