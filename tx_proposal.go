@@ -22,6 +22,46 @@ func (mv *MaskedValue) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type FeeValue uint64
+
+func (fv FeeValue) MarshalJSON() ([]byte, error) {
+	s := strconv.FormatUint(uint64(fv), 10)
+	return []byte(strconv.Quote(s)), nil
+}
+
+func (fv *FeeValue) UnmarshalJSON(data []byte) error {
+	dd, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	u, err := strconv.ParseUint(dd, 10, 64)
+	if err != nil {
+		return err
+	}
+	*fv = FeeValue(u)
+	return nil
+}
+
+type TombstoneValue uint64
+
+func (tv TombstoneValue) MarshalJSON() ([]byte, error) {
+	s := strconv.FormatUint(uint64(tv), 10)
+	return []byte(strconv.Quote(s)), nil
+}
+
+func (tv *TombstoneValue) UnmarshalJSON(data []byte) error {
+	dd, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	u, err := strconv.ParseUint(dd, 10, 64)
+	if err != nil {
+		return err
+	}
+	*tv = TombstoneValue(u)
+	return nil
+}
+
 type Amount struct {
 	Commitment  string      `json:"commitment"`
 	MaskedValue MaskedValue `json:"masked_value"`
@@ -66,10 +106,10 @@ type TxIn struct {
 }
 
 type TxPrefix struct {
-	Inputs         []*TxIn  `json:"inputs"`
-	Outputs        []*TxOut `json:"outputs"`
-	Fee            uint64   `json:"fee"`
-	TombstoneBlock uint64   `json:"tombstone_block"`
+	Inputs         []*TxIn        `json:"inputs"`
+	Outputs        []*TxOut       `json:"outputs"`
+	Fee            FeeValue       `json:"fee"`
+	TombstoneBlock TombstoneValue `json:"tombstone_block"`
 }
 
 type RingMLSAG struct {

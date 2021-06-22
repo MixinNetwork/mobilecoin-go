@@ -156,8 +156,8 @@ func (tb *TransactionBuilder) Build() (*Tx, error) {
 	txPrefix := &TxPrefix{
 		Inputs:         inputList,
 		Outputs:        outputList,
-		Fee:            tb.Fee,
-		TombstoneBlock: tb.TombstoneBlock,
+		Fee:            FeeValue(tb.Fee),
+		TombstoneBlock: TombstoneValue(tb.TombstoneBlock),
 	}
 
 	message := HashOfTxPrefix(txPrefix)

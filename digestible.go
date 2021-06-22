@@ -279,8 +279,8 @@ func appendTxPrefix(tx *TxPrefix, t *merlin.Transcript) {
 
 	appendInputs(tx.Inputs, t)
 	appendOutputs(tx.Outputs, t)
-	appendFee(tx.Fee, t)
-	appendTombstoneBlock(tx.TombstoneBlock, t)
+	appendFee(uint64(tx.Fee), t)
+	appendTombstoneBlock(uint64(tx.TombstoneBlock), t)
 
 	appendBytes([]byte("mobilecoin-tx-prefix"), []byte(AGGREGATE_END), t)
 	appendBytes([]byte("name"), []byte("TxPrefix"), t)
