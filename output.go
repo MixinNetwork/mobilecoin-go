@@ -60,7 +60,7 @@ func newAmount(value uint64, secret *ristretto.Point) (*Amount, *ristretto.Scala
 	maskedValue := value ^ mask
 	return &Amount{
 		Commitment:  hex.EncodeToString(commitment.Bytes()),
-		MaskedValue: maskedValue,
+		MaskedValue: MaskedValue(maskedValue),
 	}, blinding
 }
 

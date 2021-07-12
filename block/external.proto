@@ -6,9 +6,9 @@ syntax = "proto3";
 
 package external;
 
-option go_package = ".;block";
 option java_package = "com.mobilecoin.api";
 option java_outer_classname = "MobileCoinAPI";
+option go_package = ".;block";
 
 ///////////////////////////////////////////////////////////////////////////////
 // `keys` crate

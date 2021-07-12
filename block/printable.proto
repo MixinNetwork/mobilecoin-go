@@ -7,8 +7,8 @@ import "external.proto";
 
 package printable;
 
-option go_package = ".;block";
 option java_package = "com.mobilecoin.api";
+option go_package = ".;block";
 
 /// Message for a payment request, which combines a public address
 /// with an a requested payment amount and memo field
