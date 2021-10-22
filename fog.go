@@ -129,9 +129,36 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
     if err != nil { return nil, err }
 
     // Construct a verifier object that is used to verify the report's attestation
+    mr_enclave_bytes, err := hex.DecodeString("a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11") // testnet MRENCLAVE
+    // mr_enclave_bytes, err := hex.DecodeString("709ab90621e3a8d9eb26ed9e2830e091beceebd55fb01c5d7c31d27e83b9b0d1") // mainnet MRENCLAVE
+    if err != nil { return nil, err }
+
+    c_mr_enclave_bytes := C.CBytes(mr_enclave_bytes)
+    defer C.free(c_mr_enclave_bytes)
+
+    c_mr_enclave := C.McBuffer {
+        buffer: (*C.uchar)(c_mr_enclave_bytes),
+        len: C.ulong(len(mr_enclave_bytes)),
+    }
+
+    mr_enclave_verifier, err := C.mc_mr_enclave_verifier_create(&c_mr_enclave)
+    if err != nil { return nil, err }
+    if mr_enclave_verifier == nil { return nil, errors.New("mc_mr_enclave_verifier_create failed") }
+    defer C.mc_mr_enclave_verifier_free(mr_enclave_verifier)
+
+    c_advisory_id := C.CString("INTEL-SA-00334")
+    defer C.free(unsafe.Pointer(c_advisory_id))
+    ret, err := C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id)
+    if err != nil { return nil, err }
+    if ret == false { return nil, errors.New("mc_mr_enclave_verifier_allow_hardening_advisory failed") }
+
     verifier, err := C.mc_verifier_create();
     if err != nil { return nil, err }
     defer C.mc_verifier_free(verifier)
+
+    ret, err = C.mc_verifier_add_mr_enclave(verifier, mr_enclave_verifier)
+    if err != nil { return nil, err }
+    if ret == false { return nil, errors.New("mc_verifier_add_mr_enclave failed") }
 
     // TODO: Configure verifier to verify MRSIGNER? MRENCLAVE?
 
@@ -152,7 +179,7 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
     c_address := C.CString(recipient.FogReportUrl)
 	defer C.free(unsafe.Pointer(c_address))
 
-    ret, err := C.mc_fog_resolver_add_report_response(
+    ret, err = C.mc_fog_resolver_add_report_response(
         fog_resolver,
         c_address,
         &report_buf,
