@@ -100,12 +100,49 @@ type FogFullyValidatedPubkey struct {
 	pubkey_expiry uint64
 }
 
+// Utility method to convert the internal Go PublicAddress to the external GRPC object
+func PublicAddressToProtobuf(addr *PublicAddress) (*block.PublicAddress, error) {
+	view, err := hex.DecodeString(addr.ViewPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	spend, err := hex.DecodeString(addr.SpendPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	fog_authority_sig, err := hex.DecodeString(addr.FogAuthoritySig)
+	if err != nil {
+		return nil, err
+	}
+
+	protobufObject := &block.PublicAddress{
+		ViewPublicKey:   &block.CompressedRistretto{Data: view},
+		SpendPublicKey:  &block.CompressedRistretto{Data: spend},
+		FogReportUrl:    addr.FogReportUrl,
+		FogReportId:     addr.FogReportId,
+		FogAuthoritySig: fog_authority_sig,
+	}
+
+	return protobufObject, nil
+}
+
 // A function that gets a MobileCoin public address, contacts the fog report server
 // associated with it to get a report, and if successful returns the fully validated fog key.
 // Note: Assumes the address is a Fog address. Do not use if FogReportUrl is empty.
 func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error) {
 	if recipient.FogReportUrl == "" {
 		return nil, errors.New("Not a fog address")
+	}
+
+	// Convert recipient from the Go representation to protobuf bytes
+	protobufRecipient, err := PublicAddressToProtobuf(recipient)
+	if err != nil {
+		return nil, err
+	}
+
+	recipientProtobufBytes, err := proto.Marshal(protobufRecipient)
+	if err != nil {
+		return nil, err
 	}
 
 	// Used for returning errors from libmobilecoin
@@ -209,65 +246,17 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
 		}
 	}
 
-	// Convert a Go  PublicAddress to libmobilecoin PublicAddress
-	view_bytes, err := hex.DecodeString(recipient.ViewPublicKey)
-	if err != nil {
-		return nil, err
-	}
-	c_view_bytes := C.CBytes(view_bytes)
-	defer C.free(c_view_bytes)
-
-	spend_bytes, err := hex.DecodeString(recipient.SpendPublicKey)
-	if err != nil {
-		return nil, err
-	}
-	c_spend_bytes := C.CBytes(spend_bytes)
-	defer C.free(c_spend_bytes)
-
-	c_report_url := C.CString(recipient.FogReportUrl)
-	defer C.free(unsafe.Pointer(c_report_url))
-
-	c_report_id := C.CString(recipient.FogReportId)
-	defer C.free(unsafe.Pointer(c_report_id))
-
-	authority_sig_bytes, err := hex.DecodeString(recipient.FogAuthoritySig)
-	if err != nil {
-		return nil, err
-	}
-	c_authority_sig_bytes := C.CBytes(authority_sig_bytes)
-	defer C.free(c_authority_sig_bytes)
-
-	c_authority_sig := (*C.McBuffer)(C.malloc(C.sizeof_McBuffer))
-	defer C.free(unsafe.Pointer(c_authority_sig))
-	c_authority_sig.buffer = (*C.uchar)(c_authority_sig_bytes)
-	c_authority_sig.len = C.ulong(len(authority_sig_bytes))
-
-	c_fog_info := (*C.McPublicAddressFogInfo)(C.malloc(C.sizeof_McPublicAddressFogInfo))
-	defer C.free(unsafe.Pointer(c_fog_info))
-	c_fog_info.report_url = c_report_url
-	c_fog_info.report_id = c_report_id
-	c_fog_info.authority_sig = c_authority_sig
-
-	c_view_public_key := (*C.McBuffer)(C.malloc(C.sizeof_McBuffer))
-	defer C.free(unsafe.Pointer(c_view_public_key))
-	c_view_public_key.buffer = (*C.uchar)(c_view_bytes)
-	c_view_public_key.len = C.ulong(len(view_bytes))
-
-	c_spend_public_key := (*C.McBuffer)(C.malloc(C.sizeof_McBuffer))
-	defer C.free(unsafe.Pointer(c_spend_public_key))
-	c_spend_public_key.buffer = (*C.uchar)(c_spend_bytes)
-	c_spend_public_key.len = C.ulong(len(spend_bytes))
-
-	c_public_address := (*C.McPublicAddress)(C.malloc(C.sizeof_McPublicAddress))
-	defer C.free(unsafe.Pointer(c_public_address))
-	c_public_address.view_public_key = c_view_public_key
-	c_public_address.spend_public_key = c_spend_public_key
-	c_public_address.fog_info = c_fog_info
-
 	// Perform the actual validation and key extraction
-	fully_validated_fog_pub_key, err := C.mc_fog_resolver_get_fog_pubkey(
+	c_recipient_bytes := C.CBytes(recipientProtobufBytes)
+	defer C.free(c_recipient_bytes)
+
+	c_recipient_buf := C.McBuffer{
+		buffer: (*C.uchar)(c_recipient_bytes),
+		len:    (C.ulong)(len(recipientProtobufBytes)),
+	}
+	fully_validated_fog_pub_key, err := C.mc_fog_resolver_get_fog_pubkey_from_protobuf_public_address(
 		fog_resolver,
-		c_public_address,
+		&c_recipient_buf,
 		&mc_error,
 	)
 	if err != nil {
