@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
@@ -92,53 +93,83 @@ func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 }
 
 
-func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // TODO need to also return pubkey expiry
+// A fully validated Fog Pubkey used to encrypt hints.
+// This mimics https://github.com/mobilecoinfoundation/mobilecoin/blob/master/fog/report/validation/src/traits.rs#L29
+type FogFullyValidatedPubkey struct {
+    // Public key in Ristretto format
+    pubkey ristretto.Point
+
+    // Public key in 32 bytes array
+    pubkey_bytes []byte
+
+    // The pubkey_expiry value is the latest block that fog-service promises
+    // that is valid to encrypt fog hints using this key for.
+    // The client should obey this limit by not setting tombstone block for a
+    // transaction larger than this limit if the fog pubkey is used.
+    pubkey_expiry uint64
+}
+
+// A function that gets a MobileCoin public address, contacts the fog report server
+// associated with it to get a report, and if successful returns the fully validated fog key.
+// Note: Assumes the address is a Fog address. Do not use if FogReportUrl is empty.
+func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error) {
+    if recipient.FogReportUrl == "" {
+        return nil, errors.New("Not a fog address")
+    }
+
+    // Used for returning errors from libmobilecoin
+    var mc_error *C.McError
+
+    // Connect to the fog report server and obtain a report
     report, err := GetFogReportResponse(recipient.FogReportUrl)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, err }
+
+    // Convert the report back to protobuf bytes so that it could be handed to libmobilecoin
     reportBytes, err := proto.Marshal(report)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, err }
 
-    fmt.Printf("report bytes %#v\n", len(reportBytes))
-
+    // Construct a verifier object that is used to verify the report's attestation
     verifier, err := C.mc_verifier_create();
-    if err != nil {
-        return nil, err
-    }
-    fmt.Printf("verifier: %#v\n", verifier)
+    if err != nil { return nil, err }
+    defer C.mc_verifier_free(verifier)
 
+    // TODO: Configure verifier to verify MRSIGNER? MRENCLAVE?
+
+    // Create the FogResolver object that is used to perform report validation using the verifier constructed above
     fog_resolver, err := C.mc_fog_resolver_create(verifier)
-    if err != nil {
-        return nil, err
+    if err != nil { return nil, err }
+    defer C.mc_fog_resolver_free(fog_resolver)
+
+    // Add the report bytes to the resolver
+    c_report_buf_bytes := C.CBytes(reportBytes)
+    defer C.free(c_report_buf_bytes)
+
+    report_buf := C.McBuffer {
+        buffer: (*C.uchar)(c_report_buf_bytes),
+        len: C.ulong(len(reportBytes)),
     }
-    fmt.Printf("fog_resolver: %#v\n", fog_resolver)
-
-    c_report_buf := C.CBytes(reportBytes)
-    defer C.free(c_report_buf)
-
-    report_buf := C.McBuffer { buffer: (*C.uchar)(c_report_buf), len: C.ulong(len(reportBytes)) }
-    fmt.Printf("report bytes %#v eheh\n", report_buf)
 
     c_address := C.CString(recipient.FogReportUrl)
 	defer C.free(unsafe.Pointer(c_address))
-
 
     ret, err := C.mc_fog_resolver_add_report_response(
         fog_resolver,
         c_address,
         &report_buf,
-        nil,
+        &mc_error,
     )
-    if err != nil {
-        return nil, err
+    if err != nil { return nil, err }
+    if ret == false {
+        if mc_error == nil {
+            return nil, errors.New("mc_fog_resolver_add_report_response failed")
+        } else {
+            err = fmt.Errorf("mc_fog_resolver_add_report_response failed: [%d] %s", mc_error.error_code, C.GoString(mc_error.error_description))
+            C.mc_error_free(mc_error)
+            return nil, err
+        }
     }
-    fmt.Printf("add report: %#v\n", ret)
 
-
-    // Go PublicAddress to libmobilecoin
+    // Convert a Go  PublicAddress to libmobilecoin PublicAddress
     view_bytes, err := hex.DecodeString(recipient.ViewPublicKey)
     if err != nil { return nil, err }
     c_view_bytes := C.CBytes(view_bytes)
@@ -149,16 +180,16 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // T
     c_spend_bytes := C.CBytes(spend_bytes)
     defer C.free(c_spend_bytes)
 
-    authority_sig_bytes, err := hex.DecodeString(recipient.FogAuthoritySig)
-    if err != nil { return nil, err }
-    c_authority_sig_bytes := C.CBytes(authority_sig_bytes)
-    defer C.free(c_authority_sig_bytes)
-
     c_report_url := C.CString(recipient.FogReportUrl)
     defer C.free(unsafe.Pointer(c_report_url))
 
     c_report_id := C.CString(recipient.FogReportId)
     defer C.free(unsafe.Pointer(c_report_id))
+
+    authority_sig_bytes, err := hex.DecodeString(recipient.FogAuthoritySig)
+    if err != nil { return nil, err }
+    c_authority_sig_bytes := C.CBytes(authority_sig_bytes)
+    defer C.free(c_authority_sig_bytes)
 
     c_authority_sig := (*C.McBuffer)(C.malloc(C.sizeof_McBuffer))
     defer C.free(unsafe.Pointer(c_authority_sig))
@@ -187,16 +218,29 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // T
     c_public_address.spend_public_key = c_spend_public_key
     c_public_address.fog_info = c_fog_info
 
+    // Perform the actual validation and key extraction
     fully_validated_fog_pub_key, err := C.mc_fog_resolver_get_fog_pubkey(
         fog_resolver,
         c_public_address,
+        &mc_error,
     )
     if err != nil { return nil, err }
+    if fully_validated_fog_pub_key == nil {
+        if mc_error == nil {
+            return nil, errors.New("get_fog_pubkey failed: no error returned?!")
+        } else {
+            err = fmt.Errorf("get_fog_pubkey failed: [%d] %s", mc_error.error_code, C.GoString(mc_error.error_description))
+            C.mc_error_free(mc_error)
+            return nil, err
+        }
+    }
     defer C.mc_fully_validated_fog_pubkey_free(fully_validated_fog_pub_key)
 
+    // Get the pubkey expiry
     pubkey_expiry, err := C.mc_fully_validated_fog_pubkey_get_pubkey_expiry(fully_validated_fog_pub_key)
     if err != nil { return nil, err }
 
+    // Get the pubkey
     out_buf := C.malloc(32)
     defer C.free(out_buf)
 
@@ -209,10 +253,15 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // T
     if err != nil { return nil, err }
     fog_pubkey_bytes := C.GoBytes(out_buf, 32)
 
+    // Convert pubkey bytes to ristretto Point
+    var fog_pubkey ristretto.Point
+    err = fog_pubkey.UnmarshalBinary(fog_pubkey_bytes)
+    if err != nil { return nil, err }
 
-    fmt.Printf("[go] fully validated fog pub key expiry: %d\n", pubkey_expiry)
-    fmt.Printf("[go] fully validated fog pub key expiry: %s\n", hex.EncodeToString(fog_pubkey_bytes))
-
-
-    return nil, nil
+    // Return successful result
+    return &FogFullyValidatedPubkey {
+        pubkey: fog_pubkey,
+        pubkey_bytes: fog_pubkey_bytes,
+        pubkey_expiry: uint64(pubkey_expiry),
+    }, nil
 }
