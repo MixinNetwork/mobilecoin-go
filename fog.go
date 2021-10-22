@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -27,10 +26,6 @@ import (
 // #cgo LDFLAGS: /Users/eran/Projects/mc/mobilecoin/target/debug/libmobilecoin.a -framework Security -framework Foundation
 import "C"
 
-
-
-//go:embed credentials/lets-encrypt.crt
-var crt []byte
 
 const (
 	MAJOR_VERSION        = 1
@@ -73,13 +68,8 @@ func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 		return nil, err
 	}
 
-    // NOTE: I have hardcoded the lets-encrypt root cert from https://letsencrypt.org/certificates/
-    // However, ideally, this should use the system certificates
-	cp := x509.NewCertPool()
-	if !cp.AppendCertsFromPEM(crt) {
-		return nil, fmt.Errorf("credentials: failed to append certificates")
-	}
-	creds := credentials.NewTLS(&tls.Config{RootCAs: cp})
+    // Use system RootCAs
+	creds := credentials.NewTLS(&tls.Config{})
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(creds))
