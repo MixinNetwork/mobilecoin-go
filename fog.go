@@ -72,6 +72,9 @@ func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+    // NOTE: I have hardcoded the lets-encrypt root cert from https://letsencrypt.org/certificates/
+    // However, ideally, this should use the system certificates
 	cp := x509.NewCertPool()
 	if !cp.AppendCertsFromPEM(crt) {
 		return nil, fmt.Errorf("credentials: failed to append certificates")
