@@ -138,8 +138,6 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // T
     fmt.Printf("add report: %#v\n", ret)
 
 
-
-
     // Go PublicAddress to libmobilecoin
     view_bytes, err := hex.DecodeString(recipient.ViewPublicKey)
     if err != nil { return nil, err }
@@ -194,8 +192,27 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*ristretto.Point, error) { // T
         c_public_address,
     )
     if err != nil { return nil, err }
+    defer C.mc_fully_validated_fog_pubkey_free(fully_validated_fog_pub_key)
 
-    fmt.Printf("fully validated fog pub key: %#v\n", fully_validated_fog_pub_key)
+    pubkey_expiry, err := C.mc_fully_validated_fog_pubkey_get_pubkey_expiry(fully_validated_fog_pub_key)
+    if err != nil { return nil, err }
+
+    out_buf := C.malloc(32)
+    defer C.free(out_buf)
+
+    mutable_buf := (*C.McMutableBuffer)(C.malloc(C.sizeof_McMutableBuffer))
+    defer C.free(unsafe.Pointer(mutable_buf))
+    mutable_buf.buffer = (*C.uchar)(out_buf)
+    mutable_buf.len = 32
+
+    _, err = C.mc_fully_validated_fog_pubkey_get_pubkey(fully_validated_fog_pub_key, mutable_buf)
+    if err != nil { return nil, err }
+    fog_pubkey_bytes := C.GoBytes(out_buf, 32)
+
+
+    fmt.Printf("[go] fully validated fog pub key expiry: %d\n", pubkey_expiry)
+    fmt.Printf("[go] fully validated fog pub key expiry: %s\n", hex.EncodeToString(fog_pubkey_bytes))
+
 
     return nil, nil
 }
