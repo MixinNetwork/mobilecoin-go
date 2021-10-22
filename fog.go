@@ -160,8 +160,6 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
     if err != nil { return nil, err }
     if ret == false { return nil, errors.New("mc_verifier_add_mr_enclave failed") }
 
-    // TODO: Configure verifier to verify MRSIGNER? MRENCLAVE?
-
     // Create the FogResolver object that is used to perform report validation using the verifier constructed above
     fog_resolver, err := C.mc_fog_resolver_create(verifier)
     if err != nil { return nil, err }
