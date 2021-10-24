@@ -135,6 +135,12 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
 		return nil, errors.New("Not a fog address")
 	}
 
+	fmt.Printf("\n-------------------------------------------\n")
+	fmt.Printf("------RECIPIENT ADDRESS FOG REPORT URL-----\n")
+	fmt.Printf("-------------------------------------------\n")
+	fmt.Printf(recipient.FogReportUrl)
+	fmt.Printf("\n-------------------------------------------\n")
+
 	// Convert recipient from the Go representation to protobuf bytes
 	protobufRecipient, err := PublicAddressToProtobuf(recipient)
 	if err != nil {
@@ -161,9 +167,18 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
 		return nil, err
 	}
 
+  fog_url_to_mr_enclave_hex := map[string]string {
+    "fog://fog.prod.mobilecoinww.com": "f3f7e9a674c55fb2af543513527b6a7872de305bac171783f6716a0bf6919499",
+    "fog://service.fog.mob.staging.namda.net": "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
+  }
+
+  mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[string(recipient.FogReportUrl)]
+  if !ok {
+		return nil, errors.New("No enclave hex for Address' fog url")
+  }
+
 	// Construct a verifier object that is used to verify the report's attestation
-	mr_enclave_bytes, err := hex.DecodeString("a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11") // testnet MRENCLAVE
-	// mr_enclave_bytes, err := hex.DecodeString("709ab90621e3a8d9eb26ed9e2830e091beceebd55fb01c5d7c31d27e83b9b0d1") // mainnet MRENCLAVE
+  mr_enclave_bytes, err := hex.DecodeString(mr_enclave_hex)
 	if err != nil {
 		return nil, err
 	}
