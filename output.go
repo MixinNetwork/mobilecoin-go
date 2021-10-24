@@ -26,7 +26,7 @@ func CreateOutput(value uint64, recipient *PublicAddress, index int) (*OutputAnd
 	var r ristretto.Scalar
 	r.Rand()
 
-	hint, _, err := FakeFogHint(recipient)
+	hint, _, err := CreateFogHint(recipient)
 	if err != nil {
 		return nil, "", err
 	}

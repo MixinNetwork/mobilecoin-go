@@ -22,8 +22,8 @@ import (
 // #include <stdlib.h>
 // #include <errno.h>
 // #include "libmobilecoin.h"
-// #cgo CFLAGS: -I/Users/eran/Projects/mc/mobilecoin/libmobilecoin/include
-// #cgo LDFLAGS: /Users/eran/Projects/mc/mobilecoin/target/debug/libmobilecoin.a -framework Security -framework Foundation
+// #cgo CFLAGS: -I./include
+// #cgo LDFLAGS: ./include/libmobilecoin.a -framework Security -framework Foundation
 import "C"
 
 const (
@@ -42,7 +42,9 @@ func fakeOnetimeHint() ([]byte, error) {
 	return encryptFixedLength(&key, plaintext)
 }
 
-func CreateFogHint(recipient *block.PublicAddress) ([]byte, uint64, error) {
+// https://github.com/mobilecoinfoundation/mobilecoin/blob/9f3191d7c3027385b72863cea74e1fdab0525130/transaction/std/src/transaction_builder.rs#L402
+// create_fog_hint
+func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
 	// fog_report_url is none
 	if len(recipient.FogReportUrl) == 0 {
 		hint, err := fakeOnetimeHint()
@@ -52,13 +54,12 @@ func CreateFogHint(recipient *block.PublicAddress) ([]byte, uint64, error) {
 		return hint, math.MaxUint64, nil
 	}
 
-	// validated_fog_pubkey := GetFogPubkey(recipient)
+	pubkey, err := GetFogPubkeyRust(recipient)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	return nil, 0, nil
-}
-
-func FakeFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
-	return nil, 0, nil
+	return pubkey.pubkey_bytes, pubkey.pubkey_expiry, nil
 }
 
 func GetFogReportResponse(address string) (*block.ReportResponse, error) {
