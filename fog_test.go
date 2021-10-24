@@ -33,7 +33,7 @@ func TestFogAddress_Testnet(t *testing.T) {
 	fmt.Printf("-------------------------------------------\n")
 }
 
-func TestFogAddress_Mainnet(t *testing.T) {
+func TestFogAddress_MobileCoinMainnet(t *testing.T) {
 	assert := assert.New(t)
 	hint, err := fakeOnetimeHint()
 	assert.Equal(err, nil)
@@ -57,7 +57,7 @@ func TestFogAddress_Mainnet(t *testing.T) {
 	fmt.Printf("-------------------------------------------\n")
 }
 
-func TestFogAddress(t *testing.T) {
+func TestFogAddress_SignalMainnet(t *testing.T) {
 	assert := assert.New(t)
 	hint, err := fakeOnetimeHint()
 	assert.Equal(err, nil)
