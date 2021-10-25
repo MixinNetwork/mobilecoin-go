@@ -32,6 +32,8 @@ const (
 
 	EncryptedFogHintSize = 84
 	FooterSize           = 50
+
+	MAGIC_NUMBER = 42
 )
 
 // generate an EncryptedFogHint
@@ -59,7 +61,23 @@ func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
 		return nil, 0, err
 	}
 
-	return pubkey.pubkey_bytes, pubkey.pubkey_expiry, nil
+	view, err := hex.DecodeString(recipient.ViewPublicKey)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	plaintext := make([]byte, EncryptedFogHintSize-FooterSize)
+	copy(plaintext[0:len(view)], view[:])
+	for i := len(view); i < len(plaintext); i++ {
+		plaintext[i] = MAGIC_NUMBER
+	}
+
+	encrypted_fog_hint, err := encryptFixedLength(&pubkey.pubkey, plaintext)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return encrypted_fog_hint, pubkey.pubkey_expiry, nil
 }
 
 func GetFogReportResponse(address string) (*block.ReportResponse, error) {
