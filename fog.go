@@ -153,12 +153,6 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
 		return nil, errors.New("Not a fog address")
 	}
 
-	fmt.Printf("\n-------------------------------------------\n")
-	fmt.Printf("------RECIPIENT ADDRESS FOG REPORT URL-----\n")
-	fmt.Printf("-------------------------------------------\n")
-	fmt.Printf(recipient.FogReportUrl)
-	fmt.Printf("\n-------------------------------------------\n")
-
 	// Convert recipient from the Go representation to protobuf bytes
 	protobufRecipient, err := PublicAddressToProtobuf(recipient)
 	if err != nil {
