@@ -18,12 +18,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// #cgo CFLAGS: -I${SRCDIR}/include
+// #cgo darwin LDFLAGS: ${SRCDIR}/include/libmobilecoin.a -framework Security -framework Foundation
+// #cgo linux LDFLAGS: ${SRCDIR}/include/libmobilecoin_linux.a -framework Security -framework Foundation
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <errno.h>
 // #include "libmobilecoin.h"
-// #cgo CFLAGS: -I./include
-// #cgo LDFLAGS: ./include/libmobilecoin.a -framework Security -framework Foundation
 import "C"
 
 const (

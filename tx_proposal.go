@@ -81,6 +81,7 @@ type TxOut struct {
 	TargetKey string  `json:"target_key"`
 	PublicKey string  `json:"public_key"`
 	EFogHint  string  `json:"e_fog_hint"`
+	EMemo     string  `json:"e_memo"`
 }
 
 type Range struct {
