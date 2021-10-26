@@ -1,6 +1,15 @@
 package api
 
-import "strconv"
+import (
+	"encoding/binary"
+	"encoding/hex"
+	"hash/crc32"
+	"strconv"
+
+	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/btcsuite/btcutil/base58"
+	"google.golang.org/protobuf/proto"
+)
 
 type MaskedValue uint64
 
@@ -72,6 +81,7 @@ type TxOut struct {
 	TargetKey string  `json:"target_key"`
 	PublicKey string  `json:"public_key"`
 	EFogHint  string  `json:"e_fog_hint"`
+	EMemo     string  `json:"e_memo"`
 }
 
 type Range struct {
@@ -159,4 +169,29 @@ type TxProposal struct {
 	Fee                       uint64          `json:"fee"`
 	OutlayIndexToTxOutIndex   [][]int         `json:"outlay_index_to_tx_out_index"`
 	OutlayConfirmationNumbers [][]int         `json:"outlay_confirmation_numbers"`
+}
+
+func (addr *PublicAddress) B58Code() (string, error) {
+	view, err := hex.DecodeString(addr.ViewPublicKey)
+	if err != nil {
+		return "", err
+	}
+	spend, err := hex.DecodeString(addr.SpendPublicKey)
+	if err != nil {
+		return "", err
+	}
+	address := &block.PublicAddress{
+		ViewPublicKey:  &block.CompressedRistretto{Data: view},
+		SpendPublicKey: &block.CompressedRistretto{Data: spend},
+	}
+	wrapper := &block.PrintableWrapper_PublicAddress{PublicAddress: address}
+	data, err := proto.Marshal(&block.PrintableWrapper{Wrapper: wrapper})
+	if err != nil {
+		return "", err
+	}
+
+	bytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bytes, crc32.ChecksumIEEE(data))
+	bytes = append(bytes, data...)
+	return base58.Encode(bytes), nil
 }

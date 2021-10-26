@@ -35,7 +35,7 @@ func CreateInnerProductProof(transcript *merlin.Transcript, Q *ristretto.Point, 
 		panic(fmt.Sprintf("CreateInnerProductProof Invalid n %d", n))
 	}
 
-	innerproductDomainSep(uint64(n), transcript)
+	InnerproductDomainSep(uint64(n), transcript)
 
 	//lgN := bits.TrailingZeros64(uint64(n << 1))
 	var LVec, RVec []*ristretto.Point
@@ -92,8 +92,8 @@ func CreateInnerProductProof(transcript *merlin.Transcript, Q *ristretto.Point, 
 		LVec = append(LVec, L)
 		RVec = append(RVec, R)
 
-		appendPoint("L", L, transcript)
-		appendPoint("R", R, transcript)
+		AppendPoint("L", L, transcript)
+		AppendPoint("R", R, transcript)
 
 		u := ChallengeScalar("u", transcript)
 		var uInv ristretto.Scalar
@@ -156,8 +156,8 @@ func CreateInnerProductProof(transcript *merlin.Transcript, Q *ristretto.Point, 
 
 		LVec = append(LVec, L)
 		RVec = append(RVec, R)
-		appendPoint("L", L, transcript)
-		appendPoint("R", R, transcript)
+		AppendPoint("L", L, transcript)
+		AppendPoint("R", R, transcript)
 
 		u := ChallengeScalar("u", transcript)
 		var uInv ristretto.Scalar
