@@ -181,12 +181,13 @@ func GetFogPubkeyRust(recipient *account.PublicAddress) (*FogFullyValidatedPubke
 		return nil, err
 	}
 
-	enclave, err := GetProductionData()
+	signature, err := ParseSignature()
 	if err != nil {
 		return nil, err
 	}
 
-	h := hex.EncodeToString(enclave)
+	enclave := signature.MRENCLAVE()
+	h := hex.EncodeToString(enclave[:])
 	fog_url_to_mr_enclave_hex := map[string]string{
 		"fog://fog.prod.mobilecoinww.com":            h,
 		"fog://service.fog.mob.production.namda.net": h,
