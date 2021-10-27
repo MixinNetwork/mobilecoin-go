@@ -5,11 +5,16 @@ import (
 	"crypto/sha256"
 	_ "embed"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 )
 
-//go:embed consensus-enclave.css
-var consensusEnclave []byte
+/*
+//go:embed ingest-enclave.css
+var ingestEnclave []byte
+*/
 
 const (
 	/// The length of the header1 field, in bytes
@@ -139,11 +144,15 @@ func parseSigFromBytes(buf []byte) *Signature {
 
 // TODO consensus-enclave.css will change once per quarter
 func ParseSignature() (*Signature, error) {
-	s := &Signature{}
-	if len(consensusEnclave) != s.Size() {
-		return nil, fmt.Errorf("Signature size invalid: %d, source %d", s.Size(), len(consensusEnclave))
+	ingestEnclave, err := GetProductionData()
+	if err != nil {
+		return nil, err
 	}
-	s = parseSigFromBytes(consensusEnclave)
+	s := &Signature{}
+	if len(ingestEnclave) != s.Size() {
+		return nil, fmt.Errorf("Signature size invalid: %d, source %d", s.Size(), len(ingestEnclave))
+	}
+	s = parseSigFromBytes(ingestEnclave)
 	if bytes.Compare(s.Header[:], HEADER1[:]) != 0 {
 		return nil, fmt.Errorf("Bad Header1")
 	}
@@ -211,4 +220,37 @@ func (s *Signature) ProductID() uint16 {
 
 func (s *Signature) Version() uint16 {
 	return binary.LittleEndian.Uint16(s.Isvsvn[:])
+}
+func (s *Signature) MRENCLAVE() [32]byte {
+	return s.Enclavehash
+}
+
+func GetProductionData() ([]byte, error) {
+	resp, err := http.Get("https://enclave-distribution.prod.mobilecoin.com/production.json")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var data struct {
+		Ingest struct {
+			Sigstruct string `json:"sigstruct"`
+		} `json:"ingest"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+	return GetConsensusEnclave(data.Ingest.Sigstruct)
+}
+
+func GetConsensusEnclave(path string) ([]byte, error) {
+	resp, err := http.Get("https://enclave-distribution.prod.mobilecoin.com/" + path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return ioutil.ReadAll(resp.Body)
 }

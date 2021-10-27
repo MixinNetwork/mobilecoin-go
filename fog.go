@@ -180,9 +180,15 @@ func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error
 		return nil, err
 	}
 
+	enclave, err := GetProductionData()
+	if err != nil {
+		return nil, err
+	}
+
+	h := hex.EncodeToString(enclave)
 	fog_url_to_mr_enclave_hex := map[string]string{
-		"fog://fog.prod.mobilecoinww.com":            "f3f7e9a674c55fb2af543513527b6a7872de305bac171783f6716a0bf6919499",
-		"fog://service.fog.mob.production.namda.net": "f3f7e9a674c55fb2af543513527b6a7872de305bac171783f6716a0bf6919499",
+		"fog://fog.prod.mobilecoinww.com":            h,
+		"fog://service.fog.mob.production.namda.net": h,
 		"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 	}
 
