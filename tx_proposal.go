@@ -1,14 +1,9 @@
 package api
 
 import (
-	"encoding/binary"
-	"encoding/hex"
-	"hash/crc32"
 	"strconv"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
-	"github.com/btcsuite/btcutil/base58"
-	"google.golang.org/protobuf/proto"
+	account "github.com/jadeydi/mobilecoin-account"
 )
 
 type MaskedValue uint64
@@ -149,17 +144,9 @@ type UnspentTxOut struct {
 	MonitorId               string `json:"monitor_id"`
 }
 
-type PublicAddress struct {
-	ViewPublicKey   string `json:"view_public_key"`
-	SpendPublicKey  string `json:"spend_public_key"`
-	FogReportUrl    string `json:"fog_report_url"`
-	FogReportId     string `json:"fog_report_id"`
-	FogAuthoritySig string `json:"fog_authority_sig"`
-}
-
 type Outlay struct {
-	Value    string         `json:"value"`
-	Receiver *PublicAddress `json:"receiver"`
+	Value    string                 `json:"value"`
+	Receiver *account.PublicAddress `json:"receiver"`
 }
 
 type TxProposal struct {
@@ -169,29 +156,4 @@ type TxProposal struct {
 	Fee                       uint64          `json:"fee"`
 	OutlayIndexToTxOutIndex   [][]int         `json:"outlay_index_to_tx_out_index"`
 	OutlayConfirmationNumbers [][]int         `json:"outlay_confirmation_numbers"`
-}
-
-func (addr *PublicAddress) B58Code() (string, error) {
-	view, err := hex.DecodeString(addr.ViewPublicKey)
-	if err != nil {
-		return "", err
-	}
-	spend, err := hex.DecodeString(addr.SpendPublicKey)
-	if err != nil {
-		return "", err
-	}
-	address := &block.PublicAddress{
-		ViewPublicKey:  &block.CompressedRistretto{Data: view},
-		SpendPublicKey: &block.CompressedRistretto{Data: spend},
-	}
-	wrapper := &block.PrintableWrapper_PublicAddress{PublicAddress: address}
-	data, err := proto.Marshal(&block.PrintableWrapper{Wrapper: wrapper})
-	if err != nil {
-		return "", err
-	}
-
-	bytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bytes, crc32.ChecksumIEEE(data))
-	bytes = append(bytes, data...)
-	return base58.Encode(bytes), nil
 }

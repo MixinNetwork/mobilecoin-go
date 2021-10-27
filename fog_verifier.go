@@ -8,7 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/jadeydi/mobilecoin-account/block"
 )
 
 type MrSignerVerifier struct {

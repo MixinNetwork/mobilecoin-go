@@ -11,8 +11,9 @@ import (
 	"net/url"
 	"unsafe"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
 	"github.com/bwesterb/go-ristretto"
+	account "github.com/jadeydi/mobilecoin-account"
+	"github.com/jadeydi/mobilecoin-account/block"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
@@ -47,7 +48,7 @@ func fakeOnetimeHint() ([]byte, error) {
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/9f3191d7c3027385b72863cea74e1fdab0525130/transaction/std/src/transaction_builder.rs#L402
 // create_fog_hint
-func CreateFogHint(recipient *PublicAddress) ([]byte, uint64, error) {
+func CreateFogHint(recipient *account.PublicAddress) ([]byte, uint64, error) {
 	// fog_report_url is none
 	if len(recipient.FogReportUrl) == 0 {
 		hint, err := fakeOnetimeHint()
@@ -121,7 +122,7 @@ type FogFullyValidatedPubkey struct {
 }
 
 // Utility method to convert the internal Go PublicAddress to the external GRPC object
-func PublicAddressToProtobuf(addr *PublicAddress) (*block.PublicAddress, error) {
+func PublicAddressToProtobuf(addr *account.PublicAddress) (*block.PublicAddress, error) {
 	view, err := hex.DecodeString(addr.ViewPublicKey)
 	if err != nil {
 		return nil, err
@@ -149,7 +150,7 @@ func PublicAddressToProtobuf(addr *PublicAddress) (*block.PublicAddress, error) 
 // A function that gets a MobileCoin public address, contacts the fog report server
 // associated with it to get a report, and if successful returns the fully validated fog key.
 // Note: Assumes the address is a Fog address. Do not use if FogReportUrl is empty.
-func GetFogPubkeyRust(recipient *PublicAddress) (*FogFullyValidatedPubkey, error) {
+func GetFogPubkeyRust(recipient *account.PublicAddress) (*FogFullyValidatedPubkey, error) {
 	if recipient.FogReportUrl == "" {
 		return nil, errors.New("Not a fog address")
 	}

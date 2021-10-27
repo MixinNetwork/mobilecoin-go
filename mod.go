@@ -84,6 +84,11 @@ func multiscalarMul(scalars []*ristretto.Scalar, points []*ristretto.Point) *ris
 	return &p
 }
 
+func createSharedSecret(public *ristretto.Point, private *ristretto.Scalar) *ristretto.Point {
+	var r ristretto.Point
+	return r.ScalarMult(public, private)
+}
+
 func fromBytesModOrderWide(data []byte) *ristretto.Scalar {
 	var data64 [64]byte
 	copy(data64[:], data)

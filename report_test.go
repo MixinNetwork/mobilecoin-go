@@ -6,7 +6,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/jadeydi/mobilecoin-account/block"
 	"github.com/stretchr/testify/assert"
 )
 

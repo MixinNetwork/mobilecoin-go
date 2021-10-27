@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	"github.com/dchest/blake2b"
+	account "github.com/jadeydi/mobilecoin-account"
 )
 
 func keyImage(private *ristretto.Scalar) *ristretto.Point {
@@ -37,7 +38,7 @@ func GetValueWithBlinding(output *TxOut, viewPrivate *ristretto.Scalar) (uint64,
 }
 
 func GetValueWithBlindingNew(viewPrivate, publicKey string, maskedValue uint64) (uint64, *ristretto.Scalar) {
-	secret := SharedSecret(viewPrivate, publicKey)
+	secret := account.SharedSecret(viewPrivate, publicKey)
 	mask := GetValueMask(secret)
 	value := maskedValue ^ mask
 	blinding := GetBlinding(secret)

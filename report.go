@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/jadeydi/mobilecoin-account/block"
 	"github.com/gtank/merlin"
 )
 

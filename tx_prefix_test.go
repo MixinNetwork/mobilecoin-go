@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/jadeydi/mobilecoin-account/block"
 )
 
 // Only for debug

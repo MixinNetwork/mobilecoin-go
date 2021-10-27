@@ -7,7 +7,8 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/go-schnorrkel"
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	account "github.com/jadeydi/mobilecoin-account"
+	"github.com/jadeydi/mobilecoin-account/block"
 )
 
 const (
@@ -29,7 +30,7 @@ type FogResolver struct {
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/account-keys/src/account_keys.rs#L180
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L44
-func verifyAuthority(recipient *PublicAddress, certs []*x509.Certificate, sig string) (bool, error) {
+func verifyAuthority(recipient *account.PublicAddress, certs []*x509.Certificate, sig string) (bool, error) {
 	cert, err := VerifiedRoot(certs)
 	if err != nil {
 		return false, err
@@ -79,7 +80,7 @@ func mcPublicKey(cert *x509.Certificate) (ed25519.PublicKey, error) {
 }
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L22
-func verifyFogSig(recipient *PublicAddress, responses *block.ReportResponse) error {
+func verifyFogSig(recipient *account.PublicAddress, responses *block.ReportResponse) error {
 	var certs []*x509.Certificate
 	for _, buf := range responses.GetChain() {
 		cert, err := x509.ParseCertificate(buf)
@@ -112,7 +113,7 @@ func verifyFogSig(recipient *PublicAddress, responses *block.ReportResponse) err
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/lib.rs#L108
 // get_fog_pubkey
-func (resolver *FogResolver) GetFogPubkey(recipient *PublicAddress) error {
+func (resolver *FogResolver) GetFogPubkey(recipient *account.PublicAddress) error {
 	response := resolver.Responses[recipient.FogReportUrl]
 	if response == nil {
 		return errors.New("No Matching Report Response")

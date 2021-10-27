@@ -6,11 +6,11 @@ import (
 	"sort"
 
 	"github.com/bwesterb/go-ristretto"
+	account "github.com/jadeydi/mobilecoin-account"
 )
 
 const (
 	BULLETPROOF_DOMAIN_TAG               = "mc_bulletproof_transcript"
-	SUBADDRESS_DOMAIN_TAG                = "mc_subaddress"
 	AMOUNT_VALUE_DOMAIN_TAG              = "mc_amount_value"
 	AMOUNT_BLINDING_DOMAIN_TAG           = "mc_amount_blinding"
 	HASH_TO_POINT_DOMAIN_TAG             = "mc_onetime_key_hash_to_point"
@@ -102,7 +102,7 @@ func NewInputCredential(utxo *UTXO, proofSet map[string]*TxOutMembershipProof, t
 		MembershipProofs:    proofs,
 		RealIndex:           realIndex,
 		OnetimePrivateKey:   onetimePrivateKey,
-		ViewPrivateKey:      ViewPrivateKeyFromHex(viewPrivate),
+		ViewPrivateKey:      account.ViewPrivateKeyFromHex(viewPrivate),
 		RealOutputPublicKey: realOutputPublicKey,
 	}, nil
 }
@@ -112,7 +112,7 @@ type OutputAndSharedSecret struct {
 	SharedSecret *ristretto.Point `json:"shared_secret"`
 	Index        int
 	Value        uint64
-	Receiver     *PublicAddress
+	Receiver     *account.PublicAddress
 }
 
 func (o *OutputAndSharedSecret) GetValueWithBlinding() (uint64, *ristretto.Scalar) {

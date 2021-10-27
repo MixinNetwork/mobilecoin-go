@@ -4,7 +4,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 
-	"github.com/MixinNetwork/mobilecoin-go/block"
+	"github.com/jadeydi/mobilecoin-account/block"
 )
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L56

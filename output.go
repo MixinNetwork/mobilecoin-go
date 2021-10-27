@@ -5,11 +5,12 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	"github.com/dchest/blake2b"
+	account "github.com/jadeydi/mobilecoin-account"
 )
 
 type OutputWithSharedSecret struct {
 	TxOut        *TxOut
-	Receiver     *PublicAddress
+	Receiver     *account.PublicAddress
 	Value        uint64
 	Blinding     *ristretto.Scalar
 	Secret       *ristretto.Point
@@ -22,7 +23,7 @@ func createOutputWithFogHint(value uint64, recipient *PublicAddress, hint string
 }
 */
 
-func CreateOutput(value uint64, recipient *PublicAddress, index int) (*OutputAndSharedSecret, string, error) {
+func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*OutputAndSharedSecret, string, error) {
 	var r ristretto.Scalar
 	r.Rand()
 
@@ -64,7 +65,7 @@ func newAmount(value uint64, secret *ristretto.Point) (*Amount, *ristretto.Scala
 	}, blinding
 }
 
-func createOnetimePublicKey(private *ristretto.Scalar, recipient *PublicAddress) *ristretto.Point {
+func createOnetimePublicKey(private *ristretto.Scalar, recipient *account.PublicAddress) *ristretto.Point {
 	R := hexToPoint(recipient.ViewPublicKey)
 	D := hexToPoint(recipient.SpendPublicKey)
 
@@ -83,7 +84,7 @@ func RecoverOnetimePrivateKey(public, private string) (*ristretto.Scalar, error)
 	view := private[:64]
 	spend := private[64:]
 
-	account, err := NewAccountKey(view, spend)
+	account, err := account.NewAccountKey(view, spend)
 	if err != nil {
 		return nil, err
 	}
