@@ -113,6 +113,7 @@ type OutputAndSharedSecret struct {
 	Index        int
 	Value        uint64
 	Receiver     *account.PublicAddress
+	PubkeyExpiry uint64
 }
 
 func (o *OutputAndSharedSecret) GetValueWithBlinding() (uint64, *ristretto.Scalar) {
@@ -148,16 +149,22 @@ func (tb *TransactionBuilder) Build() (*Tx, error) {
 		return tb.OutputsAndSharedSecrets[i].Output.PublicKey < tb.OutputsAndSharedSecrets[j].Output.PublicKey
 	})
 
+	tombstoneBlock := tb.TombstoneBlock
+
 	outputList := make([]*TxOut, len(tb.OutputsAndSharedSecrets))
 	for i := range tb.OutputsAndSharedSecrets {
 		outputList[i] = tb.OutputsAndSharedSecrets[i].Output
+
+		if tombstoneBlock > tb.OutputsAndSharedSecrets[i].PubkeyExpiry {
+			tombstoneBlock = tb.OutputsAndSharedSecrets[i].PubkeyExpiry
+		}
 	}
 
 	txPrefix := &TxPrefix{
 		Inputs:         inputList,
 		Outputs:        outputList,
 		Fee:            FeeValue(tb.Fee),
-		TombstoneBlock: TombstoneValue(tb.TombstoneBlock),
+		TombstoneBlock: TombstoneValue(tombstoneBlock),
 	}
 
 	message := HashOfTxPrefix(txPrefix)
