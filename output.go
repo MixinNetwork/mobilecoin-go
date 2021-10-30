@@ -27,7 +27,7 @@ func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*O
 	var r ristretto.Scalar
 	r.Rand()
 
-	hint, _, err := CreateFogHint(recipient)
+	hint, pubkeyExpiry, err := CreateFogHint(recipient)
 	if err != nil {
 		return nil, "", err
 	}
@@ -51,6 +51,7 @@ func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*O
 		Index:        index,
 		Receiver:     recipient,
 		Value:        value,
+		PubkeyExpiry: pubkeyExpiry,
 	}, hex.EncodeToString(public.Bytes()), nil
 }
 
