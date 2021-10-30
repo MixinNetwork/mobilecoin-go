@@ -66,7 +66,7 @@ func verifyAuthority(recipient *account.PublicAddress, certs []*x509.Certificate
 	if err != nil {
 		return false, err
 	}
-	return public.Verify(&signature, verifyTranscript), nil
+	return public.Verify(&signature, verifyTranscript)
 }
 
 func mcPublicKey(cert *x509.Certificate) (ed25519.PublicKey, error) {
