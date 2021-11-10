@@ -199,6 +199,11 @@ func GetFogPubkeyRust(recipient *account.PublicAddress) (*FogFullyValidatedPubke
 		"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 	}
 
+	uri, err := url.Parse(recipient.FogReportUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	host := recipient.FogReportUrl
 	if uri.Port() != "" {
 		host = strings.ReplaceAll(host, ":"+uri.Port(), "")
