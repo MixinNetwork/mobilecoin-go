@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"strings"
 	"unsafe"
 
 	"github.com/bwesterb/go-ristretto"
@@ -198,7 +199,11 @@ func GetFogPubkeyRust(recipient *account.PublicAddress) (*FogFullyValidatedPubke
 		"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 	}
 
-	mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[string(recipient.FogReportUrl)]
+	host := recipient.FogReportUrl
+	if uri.Port() != "" {
+		host = strings.ReplaceAll(host, ":"+uri.Port(), "")
+	}
+	mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[host]
 	if !ok {
 		return nil, errors.New("No enclave hex for Address' fog url")
 	}
