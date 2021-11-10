@@ -93,7 +93,11 @@ func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(creds))
-	conn, err := grpc.Dial(fmt.Sprintf("%s:443", uri.Host), opts...)
+	host := uri.Host
+	if uri.Port() == "" {
+		host = fmt.Sprintf("%s:443", uri.Host)
+	}
+	conn, err := grpc.Dial(host, opts...)
 	if err != nil {
 		return nil, err
 	}
