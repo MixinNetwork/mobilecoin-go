@@ -29,7 +29,7 @@ func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*O
 
 	hint, pubkeyExpiry, err := CreateFogHint(recipient)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	target := createOnetimePublicKey(&r, recipient)
 	public := createTxPublicKey(&r, hexToPoint(recipient.SpendPublicKey))
