@@ -51,7 +51,7 @@ func verifyAuthority(recipient *account.PublicAddress, certs []*x509.Certificate
 	}
 	var view32 [32]byte
 	copy(view32[:], view)
-	public, err := schnorrkel.NewPublicKey(view32)
+	public := schnorrkel.NewPublicKey(view32)
 	if err != nil {
 		return false, err
 	}
@@ -66,7 +66,7 @@ func verifyAuthority(recipient *account.PublicAddress, certs []*x509.Certificate
 	if err != nil {
 		return false, err
 	}
-	return public.Verify(&signature, verifyTranscript)
+	return public.Verify(&signature, verifyTranscript), nil
 }
 
 func mcPublicKey(cert *x509.Certificate) (ed25519.PublicKey, error) {
