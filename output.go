@@ -23,7 +23,7 @@ func createOutputWithFogHint(value uint64, recipient *PublicAddress, hint string
 }
 */
 
-func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*OutputAndSharedSecret, string, error) {
+func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*OutputAndSharedSecret, string, string, error) {
 	var r ristretto.Scalar
 	r.Rand()
 
@@ -52,7 +52,7 @@ func CreateOutput(value uint64, recipient *account.PublicAddress, index int) (*O
 		Receiver:     recipient,
 		Value:        value,
 		PubkeyExpiry: pubkeyExpiry,
-	}, hex.EncodeToString(public.Bytes()), nil
+	}, hex.EncodeToString(public.Bytes()), hex.EncodeToString(r.Bytes()), nil
 }
 
 func newAmount(value uint64, secret *ristretto.Point) (*Amount, *ristretto.Scalar) {
