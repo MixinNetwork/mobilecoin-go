@@ -196,6 +196,7 @@ func GetFogPubkeyRust(recipient *account.PublicAddress) (*FogFullyValidatedPubke
 	fog_url_to_mr_enclave_hex := map[string]string{
 		"fog://fog.prod.mobilecoinww.com":            h,
 		"fog://service.fog.mob.production.namda.net": h,
+		"fog://fog-rpt-prd.namda.net":                h,
 		"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 	}
 
