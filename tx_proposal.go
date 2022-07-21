@@ -73,7 +73,7 @@ type Amount struct {
 }
 
 type TxOut struct {
-	Amount    *Amount `json:"amount"`
+	Amount    *Amount `json:"masked_amount"`
 	TargetKey string  `json:"target_key"`
 	PublicKey string  `json:"public_key"`
 	EFogHint  string  `json:"e_fog_hint"`
