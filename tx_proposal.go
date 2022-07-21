@@ -67,8 +67,9 @@ func (tv *TombstoneValue) UnmarshalJSON(data []byte) error {
 }
 
 type Amount struct {
-	Commitment  string      `json:"commitment"`
-	MaskedValue MaskedValue `json:"masked_value"`
+	Commitment    string      `json:"commitment"`
+	MaskedValue   MaskedValue `json:"masked_value"`
+	MaskedTokenID string      `json:"masked_token_id"`
 }
 
 type TxOut struct {
