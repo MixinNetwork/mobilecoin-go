@@ -21,10 +21,10 @@ func TestMemo(t *testing.T) {
 	public.Rand()
 	var private ristretto.Scalar
 	private.Rand()
-	memo, err := EncryptMemo(hex.EncodeToString(data), &public, &private)
+	memo, err := EncryptMemo(hex.EncodeToString(data), hex.EncodeToString(public.Bytes()), hex.EncodeToString(private.Bytes()))
 	assert.Nil(err)
 	assert.Len(memo, 66)
-	plain, err := DecryptMemo(hex.EncodeToString(memo), &public, &private)
+	plain, err := DecryptMemo(hex.EncodeToString(memo), hex.EncodeToString(public.Bytes()), hex.EncodeToString(private.Bytes()))
 	assert.Nil(err)
 	assert.True(bytes.Compare(data, plain) == 0)
 }

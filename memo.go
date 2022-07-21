@@ -7,12 +7,11 @@ import (
 	"encoding/hex"
 	"io"
 
-	"github.com/bwesterb/go-ristretto"
 	"golang.org/x/crypto/hkdf"
 )
 
-func EncryptMemo(plain string, public *ristretto.Point, private *ristretto.Scalar) ([]byte, error) {
-	secret := createSharedSecret(public, private)
+func EncryptMemo(plain string, public, private string) ([]byte, error) {
+	secret := createSharedSecret(hexToPoint(public), hexToScalar(private))
 
 	hash := sha512.New
 	salt := []byte("mc-memo-okm")
@@ -40,8 +39,8 @@ func EncryptMemo(plain string, public *ristretto.Point, private *ristretto.Scala
 	return ciphertext, nil
 }
 
-func DecryptMemo(text string, public *ristretto.Point, private *ristretto.Scalar) ([]byte, error) {
-	secret := createSharedSecret(public, private)
+func DecryptMemo(text string, public, private string) ([]byte, error) {
+	secret := createSharedSecret(hexToPoint(public), hexToScalar(private))
 
 	hash := sha512.New
 	salt := []byte("mc-memo-okm")
