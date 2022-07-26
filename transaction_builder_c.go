@@ -25,7 +25,6 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		return err
 	}
 	defer C.mc_verifier_free(verifier)
-
 	fog_resolver, err := C.mc_fog_resolver_create(verifier)
 	if err != nil {
 		return err
@@ -92,7 +91,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		}
 
 		var out_error *C.McError
-		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, &subaddress_spend_private_key, C.size_t(input.RealIndex), ring, out_error)
+		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, out_error)
 		if err != nil {
 			return err
 		} else if !b {
@@ -159,6 +158,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	}
 
 	var rng_callback *C.McRngCallback
+	var out_error *C.McError
 	mcData, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, out_error)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		secret_change_buf := secretChange.Bytes()
 		secret_change_bytes := C.CBytes(secret_change_buf)
 		defer C.free(secret_change_bytes)
-		out_tx_out_shared_secret_change := &C.McBuffer{
+		out_tx_out_shared_secret_change := &C.McMutableBuffer{
 			buffer: (*C.uint8_t)(secret_change_bytes),
 			len:    C.size_t(len(secret_change_buf)),
 		}
@@ -207,7 +207,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		mcData, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(amount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, out_error)
+		mcData, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, out_error)
 		if err != nil {
 			return nil, err
 		}

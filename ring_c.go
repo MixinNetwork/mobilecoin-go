@@ -17,8 +17,8 @@ type TxOutWithProofC struct {
 }
 
 type InputC struct {
-	ViewPrivate            ristretto.Scalar
-	SubAddressSpendPrivate ristretto.Scalar
+	ViewPrivate            *ristretto.Scalar
+	SubAddressSpendPrivate *ristretto.Scalar
 	RealIndex              int
 	TxOutWithProofCs       []*TxOutWithProofC
 }
