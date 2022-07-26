@@ -8,9 +8,13 @@ package api
 // #include <errno.h>
 // #include "libmobilecoin.h"
 import "C"
+import (
+	"errors"
+	"fmt"
+)
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreate(fee, tombstone uint64, version uint32) error {
+func MCTransactionBuilderCreate(inputCs []*InputC, fee, tombstone uint64, version uint32) error {
 	verifier, err := C.mc_verifier_create()
 	if err != nil {
 		return err
@@ -36,34 +40,62 @@ func MCTransactionBuilderCreate(fee, tombstone uint64, version uint32) error {
 	defer C.mc_transaction_builder_free(transaction_builder)
 
 	// add input
-	view_private_key_bytes := C.CBytes([]byte{})
-	defer C.free(view_private_key_bytes)
-	view_private_key := C.McBuffer{
-		buffer: (*C.uint8_t)(view_private_key_bytes),
-		len:    C.size_t(view_private_key_bytes),
-	}
+	for _, input := range inputCs {
+		view_private_key_bytes := C.CBytes(input.ViewPrivate.Bytes())
+		defer C.free(view_private_key_bytes)
+		view_private_key := C.McBuffer{
+			buffer: (*C.uint8_t)(view_private_key_bytes),
+			len:    C.size_t(len(view_private_key_bytes)),
+		}
 
-	subaddress_spend_private_key_bytes := C.CBytes([]byte{})
-	defer C.free(subaddress_spend_private_key_bytes)
-	subaddress_spend_private_key := C.McBuffer{
-		buffer: (*C.uint8_t)(subaddress_spend_private_key_bytes),
-		len:    C.size_t(subaddress_spend_private_key_bytes),
-	}
+		subaddress_spend_private_key_bytes := C.CBytes(input.SubAddressSpendPrivate.Bytes())
+		defer C.free(subaddress_spend_private_key_bytes)
+		subaddress_spend_private_key := C.McBuffer{
+			buffer: (*C.uint8_t)(subaddress_spend_private_key_bytes),
+			len:    C.size_t(len(subaddress_spend_private_key_bytes)),
+		}
 
-	ring, err := C.mc_transaction_builder_ring_create()
-	if err != nil {
-		return err
-	}
+		ring, err := C.mc_transaction_builder_ring_create()
+		if err != nil {
+			return err
+		}
+		defer C.mc_transaction_builder_ring_free(ring)
 
-	error_description_str := C.CString("")
-	defer C.free(error_description_str)
-	out_error := C.McError{
-		error_code:        C.int(0),
-		error_description: (*C.char)(error_description_str),
-	}
+		for _, r := range input.TxOutWithProofCs {
+			txOutBytes := []byte(r.TxOut.String())
+			tx_out_proto_bytes := C.CBytes(txOutBytes)
+			defer C.free(tx_out_proto_bytes)
+			tx_out_proto := C.McBuffer{
+				buffer: (*C.uint8_t)(tx_out_proto_bytes),
+				len:    C.size_t(len(txOutBytes)),
+			}
+			proofBytes := []byte(r.TxOutMembershipProof.String())
+			membership_proof_proto_bytes := C.CBytes(proofBytes)
+			defer C.free(membership_proof_proto_bytes)
+			membership_proof_proto := C.McBuffer{
+				buffer: (*C.uint8_t)(membership_proof_proto_bytes),
+				len:    C.size_t(len(proofBytes)),
+			}
+			b, err := C.mc_transaction_builder_ring_add_element(ring)
+			if err != nil {
+				return err
+			} else if !b {
+				return errors.New("mc_transaction_builder_ring_add_element failure")
+			}
+		}
 
-	b, err := C.mc_transaction_builder_add_input(&transaction_builder, &view_private_key_bytes, &subaddress_spend_private_key_bytes, C.size_t(0), &ring, &out_error)
-	if err != nil {
-		return err
+		error_description_str := C.CString("")
+		defer C.free(error_description_str)
+		out_error := C.McError{
+			error_code:        C.int(0),
+			error_description: (*C.char)(error_description_str),
+		}
+
+		b, err := C.mc_transaction_builder_add_input(&transaction_builder, &view_private_key_bytes, &subaddress_spend_private_key_bytes, C.size_t(input.RealIndex), &ring, &out_error)
+		if err != nil {
+			return err
+		} else if !b {
+			return fmt.Errorf("mc_transaction_builder_add_input failure")
+		}
 	}
 }

@@ -6,15 +6,21 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/MixinNetwork/mobilecoin-go/types"
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
 )
+
+type TxOutWithProofC struct {
+	TxOut                *types.TxOut
+	TxOutMembershipProof *types.TxOutMembershipProof
+}
 
 type InputC struct {
 	ViewPrivate            ristretto.Scalar
 	SubAddressSpendPrivate ristretto.Scalar
 	RealIndex              int
-	TxOutWithProofs        []*TxOutWithProof
+	TxOutWithProofCs       []*TxOutWithProofC
 }
 
 // mc_transaction_builder_ring_add_element
@@ -63,6 +69,31 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 				break
 			}
 		}
+		var txOutWithProofCs []*TxOutWithProofC
+		for _, item := range ring {
+			bytesA, err := json.Marshal(item.TxOut)
+			if err != nil {
+				return nil, err
+			}
+			bytesB, err := json.Marshal(item.Proof)
+			if err != nil {
+				return nil, err
+			}
+			var txOutC types.TxOut
+			err = json.Unmarshal(bytesA, &txOutC)
+			if err != nil {
+				return nil, err
+			}
+			var txOutMembershipProofC types.TxOutMembershipProof
+			err = json.Unmarshal(bytesB, &txOutMembershipProofC)
+			if err != nil {
+				return nil, err
+			}
+			txOutWithProofCs = append(txOutWithProofCs, &TxOutWithProofC{
+				TxOut:                &txOutC,
+				TxOutMembershipProof: &txOutMembershipProofC,
+			})
+		}
 		if inputSet[itemi.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
 		}
@@ -74,7 +105,7 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 			ViewPrivate:            hexToScalar(viewPrivate),
 			SubAddressSpendPrivate: acc.SubaddressSpendPrivateKey(0),
 			RealIndex:              index,
-			TxOutWithProofs:        ring,
+			TxOutWithProofCs:       txOutWithProofCs,
 		})
 	}
 	return inputCs, nil
