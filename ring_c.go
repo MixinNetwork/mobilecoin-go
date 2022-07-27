@@ -25,7 +25,7 @@ type InputC struct {
 
 // mc_transaction_builder_ring_add_element
 func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
-	inputSet = make(map[string]*UTXO)
+	inputSet := make(map[string]*UTXO)
 	for _, utxo := range utxos {
 		if len(utxo.ScriptPubKey) < 8 {
 			return nil, fmt.Errorf("MobileCoin invalid script pub key %s", utxo.ScriptPubKey)

@@ -2,7 +2,7 @@ package api
 
 // #cgo CFLAGS: -I${SRCDIR}/include
 // #cgo darwin LDFLAGS: ${SRCDIR}/include/libmobilecoin.a -framework Security -framework Foundation
-// #cgo linux LDFLAGS: ${SRCDIR}/include/libmobilecoin_linux.a -lm -ldl
+// #cgo linux LDFLAGS: ${SRCDIR}/include/libmobilecoin_linux.a -lm -ldl -lz
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <errno.h>
