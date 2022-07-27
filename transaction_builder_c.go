@@ -159,9 +159,9 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 
 	var rng_callback *C.McRngCallback
 	var out_error *C.McError
-	mcData, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, out_error)
+	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, out_error)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// mc_transaction_builder_add_change_output
 	if changeAmount > 0 {
@@ -207,11 +207,17 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		mcData, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, out_error)
+		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, out_error)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
+
+	mcData, err := C.mc_transaction_builder_build(transaction_builder, rng_callback, out_error)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func hexToBuf(text string) []byte {
