@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/bwesterb/go-ristretto"
@@ -91,7 +92,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		}
 
 		var out_error *C.McError
-		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, out_error)
+		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, &out_error)
 		if err != nil {
 			return err
 		} else if !b {
@@ -132,7 +133,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		report_id:     (*C.char)(report_id_recipient_str),
 		authority_sig: authority_sig,
 	}
-	recipient_address := &c.McPublicAddress{
+	recipient_address := &C.McPublicAddress{
 		view_public_key:  view_public,
 		spend_public_key: spend_public,
 		fog_info:         fog_info,
@@ -157,22 +158,22 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(confirmation_recipient_buf)),
 	}
 
-	var rng_callback *C.McRngCallback
+	var rng_callback C.McRngCallback
 	var out_error *C.McError
-	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, out_error)
+	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, &rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
 	if err != nil {
 		return err
 	}
 	// mc_transaction_builder_add_change_output
 	if changeAmount > 0 {
-		view_private_key_change_buf := account.ViewPrivateKey.Bytes()
+		view_private_key_change_buf := change.ViewPrivateKey.Bytes()
 		view_private_key_change_bytes := C.CBytes(view_private_key_change_buf)
 		defer C.free(view_private_key_change_bytes)
 		view_private_key_change := &C.McBuffer{
 			buffer: (*C.uint8_t)(view_private_key_change_bytes),
 			len:    C.size_t(len(view_private_key_change_buf)),
 		}
-		spend_private_key_change_buf := ccount.SpendPrivateKey.Bytes()
+		spend_private_key_change_buf := change.SpendPrivateKey.Bytes()
 		spend_private_key_change_bytes := C.CBytes(spend_private_key_change_buf)
 		defer C.free(spend_private_key_change_bytes)
 		spend_private_key_change := &C.McBuffer{
@@ -207,16 +208,17 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, out_error)
+		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), &rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, &out_error)
 		if err != nil {
 			return err
 		}
 	}
 
-	mcData, err := C.mc_transaction_builder_build(transaction_builder, rng_callback, out_error)
+	mcData, err := C.mc_transaction_builder_build(transaction_builder, &rng_callback, &out_error)
 	if err != nil {
 		return err
 	}
+	log.Println(mcData)
 	return nil
 }
 

@@ -50,7 +50,7 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		index := 0
 		ring := proofs.Rings[i]
 		for j, itemj := range ring {
-			if itemi.PublicKey == itemj.PublicKey {
+			if itemi.TxOut.PublicKey == itemj.TxOut.PublicKey {
 				index = j
 				break
 			}
@@ -64,7 +64,7 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		})
 
 		for j, itemj := range ring {
-			if itemi.PublicKey == itemj.PublicKey {
+			if itemi.TxOut.PublicKey == itemj.TxOut.PublicKey {
 				index = j
 				break
 			}
@@ -94,14 +94,14 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 				TxOutMembershipProof: &txOutMembershipProofC,
 			})
 		}
-		if inputSet[itemi.PublicKey] == nil {
+		if inputSet[itemi.TxOut.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
 		}
-		acc, err := account.NewAccountKey(viewPrivate, inputSet[itemi.PublicKey].PrivateKey)
+		acc, err := account.NewAccountKey(viewPrivate, inputSet[itemi.TxOut.PublicKey].PrivateKey)
 		if err != nil {
 			return nil, err
 		}
-		inputCs = append(InputCs, &InputC{
+		inputCs = append(inputCs, &InputC{
 			ViewPrivate:            hexToScalar(viewPrivate),
 			SubAddressSpendPrivate: acc.SubaddressSpendPrivateKey(0),
 			RealIndex:              index,
