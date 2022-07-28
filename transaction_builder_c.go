@@ -98,18 +98,18 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			}
 		}
 
-		error_description_str := C.CString("")
-		defer C.free(unsafe.Pointer(error_description_str))
-		out_error := &C.McError{
-			error_code:        C.int(0),
-			error_description: (*C.char)(error_description_str),
-		}
-		defer C.mc_error_free(out_error)
+		var out_error *C.McError
 		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, &out_error)
 		if err != nil {
 			return err
 		} else if !b {
-			return fmt.Errorf("mc_transaction_builder_add_input failure")
+			if out_error == nil {
+				return fmt.Errorf("mc_transaction_builder_add_input failure")
+			} else {
+				err = fmt.Errorf("mc_transaction_builder_add_input failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+				C.mc_error_free(out_error)
+				return err
+			}
 		}
 	}
 
@@ -171,16 +171,15 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(confirmation_recipient_buf)),
 	}
 
-	error_description_str := C.CString("")
-	defer C.free(unsafe.Pointer(error_description_str))
-	out_error := &C.McError{
-		error_code:        C.int(0),
-		error_description: (*C.char)(error_description_str),
-	}
-	defer C.mc_error_free(out_error)
 	var rng_callback C.McRngCallback
+	var out_error *C.McError
 	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, &rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
 	if err != nil {
+		return err
+	}
+	if out_error != nil {
+		err = fmt.Errorf("mc_transaction_builder_add_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+		C.mc_error_free(out_error)
 		return err
 	}
 	// mc_transaction_builder_add_change_output
@@ -229,6 +228,11 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 
 		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), &rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, &out_error)
 		if err != nil {
+			return err
+		}
+		if out_error != nil {
+			err = fmt.Errorf("mc_transaction_builder_add_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+			C.mc_error_free(out_error)
 			return err
 		}
 	}
