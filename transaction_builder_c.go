@@ -43,6 +43,9 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	if err != nil {
 		return err
 	}
+	if transaction_builder == nil {
+		return errors.New("mc_transaction_builder_create error")
+	}
 	defer C.mc_transaction_builder_free(transaction_builder)
 
 	// add input
