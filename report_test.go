@@ -6,18 +6,18 @@ import (
 	"log"
 	"testing"
 
-	"github.com/jadeydi/mobilecoin-account/block"
+	"github.com/jadeydi/mobilecoin-account/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHashOfReport(t *testing.T) {
 	assert := assert.New(t)
 
-	reports := []*block.Report{
-		&block.Report{
+	reports := []*types.Report{
+		&types.Report{
 			FogReportId: "id",
-			Report: &block.VerificationReport{
-				Sig: &block.VerificationSignature{
+			Report: &types.VerificationReport{
+				Sig: &types.VerificationSignature{
 					Contents: []byte{},
 				},
 				Chain:    [][]byte{},

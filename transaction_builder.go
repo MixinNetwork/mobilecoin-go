@@ -102,7 +102,7 @@ func NewInputCredential(utxo *UTXO, proofSet map[string]*TxOutMembershipProof, t
 		MembershipProofs:    proofs,
 		RealIndex:           realIndex,
 		OnetimePrivateKey:   onetimePrivateKey,
-		ViewPrivateKey:      account.ViewPrivateKeyFromHex(viewPrivate),
+		ViewPrivateKey:      account.HexToScalar(viewPrivate),
 		RealOutputPublicKey: realOutputPublicKey,
 	}, nil
 }

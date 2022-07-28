@@ -14,7 +14,7 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
-	"github.com/jadeydi/mobilecoin-account/block"
+	"github.com/jadeydi/mobilecoin-account/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
@@ -83,7 +83,7 @@ func CreateFogHint(recipient *account.PublicAddress) ([]byte, uint64, error) {
 	return encrypted_fog_hint, pubkey.pubkey_expiry, nil
 }
 
-func GetFogReportResponse(address string) (*block.ReportResponse, error) {
+func GetFogReportResponse(address string) (*types.ReportResponse, error) {
 	uri, err := url.Parse(address)
 	if err != nil {
 		return nil, err
@@ -104,9 +104,9 @@ func GetFogReportResponse(address string) (*block.ReportResponse, error) {
 	}
 
 	defer conn.Close()
-	client := block.NewReportAPIClient(conn)
+	client := types.NewReportAPIClient(conn)
 
-	in := &block.ReportRequest{}
+	in := &types.ReportRequest{}
 	return client.GetReports(context.Background(), in)
 }
 
@@ -127,7 +127,7 @@ type FogFullyValidatedPubkey struct {
 }
 
 // Utility method to convert the internal Go PublicAddress to the external GRPC object
-func PublicAddressToProtobuf(addr *account.PublicAddress) (*block.PublicAddress, error) {
+func PublicAddressToProtobuf(addr *account.PublicAddress) (*types.PublicAddress, error) {
 	view, err := hex.DecodeString(addr.ViewPublicKey)
 	if err != nil {
 		return nil, err
@@ -141,9 +141,9 @@ func PublicAddressToProtobuf(addr *account.PublicAddress) (*block.PublicAddress,
 		return nil, err
 	}
 
-	protobufObject := &block.PublicAddress{
-		ViewPublicKey:   &block.CompressedRistretto{Data: view},
-		SpendPublicKey:  &block.CompressedRistretto{Data: spend},
+	protobufObject := &types.PublicAddress{
+		ViewPublicKey:   &types.CompressedRistretto{Data: view},
+		SpendPublicKey:  &types.CompressedRistretto{Data: spend},
 		FogReportUrl:    addr.FogReportUrl,
 		FogReportId:     addr.FogReportId,
 		FogAuthoritySig: fog_authority_sig,
