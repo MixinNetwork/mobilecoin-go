@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/MixinNetwork/mobilecoin-go/types"
 	"github.com/bwesterb/go-ristretto"
@@ -71,27 +72,9 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		}
 		var txOutWithProofCs []*TxOutWithProofC
 		for _, item := range ring {
-			bytesA, err := json.Marshal(item.TxOut)
-			if err != nil {
-				return nil, err
-			}
-			bytesB, err := json.Marshal(item.Proof)
-			if err != nil {
-				return nil, err
-			}
-			var txOutC types.TxOut
-			err = json.Unmarshal(bytesA, &txOutC)
-			if err != nil {
-				return nil, err
-			}
-			var txOutMembershipProofC types.TxOutMembershipProof
-			err = json.Unmarshal(bytesB, &txOutMembershipProofC)
-			if err != nil {
-				return nil, err
-			}
 			txOutWithProofCs = append(txOutWithProofCs, &TxOutWithProofC{
-				TxOut:                &txOutC,
-				TxOutMembershipProof: &txOutMembershipProofC,
+				TxOut:                UnmarshalTxOut(item.TxOut),
+				TxOutMembershipProof: UnmarshalTxOutMembershipProof(item.Proof),
 			})
 		}
 		if inputSet[itemi.TxOut.PublicKey] == nil {
@@ -109,4 +92,56 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		})
 	}
 	return inputCs, nil
+}
+
+func UnmarshalTxOut(input *TxOut) *types.TxOut {
+	return &types.TxOut{
+		MaskedAmount: &types.MaskedAmount{
+			Commitment: &types.CompressedRistretto{
+				Data: hexToBytes(input.Amount.Commitment),
+			},
+			MaskedValue:   uint64(input.Amount.MaskedValue),
+			MaskedTokenId: hexToBytes(input.Amount.MaskedTokenID),
+		},
+		TargetKey: &types.CompressedRistretto{
+			Data: hexToPoint(input.TargetKey).Bytes(),
+		},
+		PublicKey: &types.CompressedRistretto{
+			Data: hexToPoint(input.PublicKey).Bytes(),
+		},
+		EFogHint: &types.EncryptedFogHint{
+			Data: hexToBytes(input.EFogHint),
+		},
+		EMemo: &types.EncryptedMemo{
+			Data: hexToBytes(input.EMemo),
+		},
+	}
+}
+
+func UnmarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMembershipProof {
+	var elements []*types.TxOutMembershipElement
+	for _, e := range proof.Elements {
+		elements = append(elements, &types.TxOutMembershipElement{
+			Range: &types.Range{
+				From: stringToUint64(e.Range.From),
+				To:   stringToUint64(e.Range.To),
+			},
+			Hash: &types.TxOutMembershipHash{
+				Data: hexToBytes(e.Hash),
+			},
+		})
+	}
+	return &types.TxOutMembershipProof{
+		Index:        stringToUint64(proof.Index),
+		HighestIndex: stringToUint64(proof.HighestIndex),
+		Elements:     elements,
+	}
+}
+
+func stringToUint64(v string) uint64 {
+	i, err := strconv.ParseUint(v, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return i
 }

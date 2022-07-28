@@ -101,7 +101,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	}
 
 	// mc_transaction_builder_add_output
-	view_public_key_buf := hexToBuf(recipient.ViewPublicKey)
+	view_public_key_buf := hexToBytes(recipient.ViewPublicKey)
 	view_public_key_bytes := C.CBytes(view_public_key_buf)
 	defer C.free(view_public_key_bytes)
 	view_public := &C.McBuffer{
@@ -109,7 +109,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(view_public_key_buf)),
 	}
 
-	spend_public_key_buf := hexToBuf(recipient.SpendPublicKey)
+	spend_public_key_buf := hexToBytes(recipient.SpendPublicKey)
 	spend_public_key_bytes := C.CBytes(spend_public_key_buf)
 	defer C.free(spend_public_key_bytes)
 	spend_public := &C.McBuffer{
@@ -121,7 +121,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	defer C.free(unsafe.Pointer(report_url_recipient_str))
 	report_id_recipient_str := C.CString(recipient.FogReportId)
 	defer C.free(unsafe.Pointer(report_id_recipient_str))
-	sig_buf := hexToBuf(recipient.FogAuthoritySig)
+	sig_buf := hexToBytes(recipient.FogAuthoritySig)
 	sig_bytes := C.CBytes(sig_buf)
 	defer C.free(sig_bytes)
 	authority_sig := &C.McBuffer{
@@ -222,7 +222,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	return nil
 }
 
-func hexToBuf(text string) []byte {
+func hexToBytes(text string) []byte {
 	buf, err := hex.DecodeString(text)
 	if err != nil {
 		panic(err)
