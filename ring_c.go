@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/MixinNetwork/mobilecoin-go/types"
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
+	"github.com/jadeydi/mobilecoin-account/block"
 )
 
 type TxOutWithProofC struct {
-	TxOut                *types.TxOut
-	TxOutMembershipProof *types.TxOutMembershipProof
+	TxOut                *block.TxOut
+	TxOutMembershipProof *block.TxOutMembershipProof
 }
 
 type InputC struct {
@@ -94,44 +94,44 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 	return inputCs, nil
 }
 
-func UnmarshalTxOut(input *TxOut) *types.TxOut {
-	return &types.TxOut{
-		MaskedAmount: &types.MaskedAmount{
-			Commitment: &types.CompressedRistretto{
+func UnmarshalTxOut(input *TxOut) *block.TxOut {
+	return &block.TxOut{
+		MaskedAmount: &block.MaskedAmount{
+			Commitment: &block.CompressedRistretto{
 				Data: hexToBytes(input.Amount.Commitment),
 			},
 			MaskedValue:   uint64(input.Amount.MaskedValue),
 			MaskedTokenId: hexToBytes(input.Amount.MaskedTokenID),
 		},
-		TargetKey: &types.CompressedRistretto{
+		TargetKey: &block.CompressedRistretto{
 			Data: hexToPoint(input.TargetKey).Bytes(),
 		},
-		PublicKey: &types.CompressedRistretto{
+		PublicKey: &block.CompressedRistretto{
 			Data: hexToPoint(input.PublicKey).Bytes(),
 		},
-		EFogHint: &types.EncryptedFogHint{
+		EFogHint: &block.EncryptedFogHint{
 			Data: hexToBytes(input.EFogHint),
 		},
-		EMemo: &types.EncryptedMemo{
+		EMemo: &block.EncryptedMemo{
 			Data: hexToBytes(input.EMemo),
 		},
 	}
 }
 
-func UnmarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMembershipProof {
-	var elements []*types.TxOutMembershipElement
+func UnmarshalTxOutMembershipProof(proof *TxOutMembershipProof) *block.TxOutMembershipProof {
+	var elements []*block.TxOutMembershipElement
 	for _, e := range proof.Elements {
-		elements = append(elements, &types.TxOutMembershipElement{
-			Range: &types.Range{
+		elements = append(elements, &block.TxOutMembershipElement{
+			Range: &block.Range{
 				From: stringToUint64(e.Range.From),
 				To:   stringToUint64(e.Range.To),
 			},
-			Hash: &types.TxOutMembershipHash{
+			Hash: &block.TxOutMembershipHash{
 				Data: hexToBytes(e.Hash),
 			},
 		})
 	}
-	return &types.TxOutMembershipProof{
+	return &block.TxOutMembershipProof{
 		Index:        stringToUint64(proof.Index),
 		HighestIndex: stringToUint64(proof.HighestIndex),
 		Elements:     elements,
