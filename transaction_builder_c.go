@@ -17,6 +17,7 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
+	"google.golang.org/protobuf/proto"
 )
 
 // mc_transaction_builder_create
@@ -69,14 +70,20 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		defer C.mc_transaction_builder_ring_free(ring)
 
 		for _, r := range input.TxOutWithProofCs {
-			tx_out_buf := []byte(r.TxOut.String())
+			tx_out_buf, err := proto.Marshal(r.TxOut)
+			if err != nil {
+				return err
+			}
 			tx_out_proto_bytes := C.CBytes(tx_out_buf)
 			defer C.free(tx_out_proto_bytes)
 			tx_out_proto := &C.McBuffer{
 				buffer: (*C.uint8_t)(tx_out_proto_bytes),
 				len:    C.size_t(len(tx_out_buf)),
 			}
-			membership_proof_buf := []byte(r.TxOutMembershipProof.String())
+			membership_proof_buf, err := proto.Marshal(r.TxOutMembershipProof)
+			if err != nil {
+				return err
+			}
 			membership_proof_proto_bytes := C.CBytes(membership_proof_buf)
 			defer C.free(membership_proof_proto_bytes)
 			membership_proof_proto := &C.McBuffer{
@@ -91,7 +98,13 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			}
 		}
 
-		var out_error *C.McError
+		error_description_str := C.CString("")
+		defer C.free(unsafe.Pointer(error_description_str))
+		out_error := &C.McError{
+			error_code:        C.int(0),
+			error_description: (*C.char)(error_description_str),
+		}
+		defer C.mc_error_free(out_error)
 		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, &out_error)
 		if err != nil {
 			return err
@@ -158,8 +171,14 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(confirmation_recipient_buf)),
 	}
 
+	error_description_str := C.CString("")
+	defer C.free(unsafe.Pointer(error_description_str))
+	out_error := &C.McError{
+		error_code:        C.int(0),
+		error_description: (*C.char)(error_description_str),
+	}
+	defer C.mc_error_free(out_error)
 	var rng_callback C.McRngCallback
-	var out_error *C.McError
 	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, &rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
 	if err != nil {
 		return err
