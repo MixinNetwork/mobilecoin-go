@@ -61,3 +61,51 @@ func MCAccountKeyGetSubAddressPrivateKeys(viewPrivateKeyStr, spendPrivateKeyStr 
 
 	return hex.EncodeToString(C.GoBytes(out_subaddress_view_private_bytes, 32)), hex.EncodeToString(C.GoBytes(out_subaddress_spend_private_bytes, 32)), nil
 }
+
+func MCTxOutMatchesSubaddress(txOutTargetKeyStr, txOutPublicKeyStr, viewPrivateKeyStr, subaddressSpendPrivateKeyStr string) (bool, error) {
+	txOutTargetKey := account.HexToPoint(txOutTargetKeyStr)
+	tx_out_target_key_buf := txOutTargetKey.Bytes()
+	tx_out_target_key_bytes := C.CBytes(tx_out_target_key_buf)
+	defer C.free(tx_out_target_key_bytes)
+	tx_out_target_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(tx_out_target_key_bytes),
+		len:    C.size_t(len(tx_out_target_key_buf)),
+	}
+
+	txOutPublicKey := account.HexToScalar(txOutPublicKeyStr)
+	tx_out_public_key_buf := txOutPublicKey.Bytes()
+	tx_out_public_key_bytes := C.CBytes(tx_out_public_key_buf)
+	defer C.free(tx_out_public_key_bytes)
+	tx_out_public_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(tx_out_public_key_bytes),
+		len:    C.size_t(len(tx_out_public_key_buf)),
+	}
+
+	viewPrivateKey := account.HexToScalar(viewPrivateKeyStr)
+	view_private_key_buf := viewPrivateKey.Bytes()
+	view_private_key_bytes := C.CBytes(view_private_key_buf)
+	defer C.free(view_private_key_bytes)
+	view_private_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(view_private_key_bytes),
+		len:    C.size_t(len(view_private_key_buf)),
+	}
+
+	subaddressSpendPrivateKey := account.HexToScalar(subaddressSpendPrivateKeyStr)
+	subadress_spend_private_key_buf := subaddressSpendPrivateKey.Bytes()
+	subadress_spend_private_key_bytes := C.CBytes(subadress_spend_private_key_buf)
+	defer C.free(subadress_spend_private_key_bytes)
+	subadress_spend_private_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(subadress_spend_private_key_bytes),
+		len:    C.size_t(len(subadress_spend_private_key_buf)),
+	}
+
+	var result bool
+	b, err := C.mc_tx_out_matches_subaddress(tx_out_target_key, tx_out_public_key, view_private_key, subadress_spend_private_key, (*C.bool)(&result))
+	if err != nil {
+		return result, err
+	}
+	if !b {
+		return result, errors.New("invalid private key")
+	}
+	return result, nil
+}
