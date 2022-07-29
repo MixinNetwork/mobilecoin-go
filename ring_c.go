@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -60,22 +61,22 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 			ring[index] = itemi
 		}
 
-		sort.Slice(ring, func(i, j int) bool {
-			return ring[i].TxOut.PublicKey < ring[j].TxOut.PublicKey
-		})
-
-		for j, itemj := range ring {
-			if itemi.TxOut.PublicKey == itemj.TxOut.PublicKey {
-				index = j
-				break
-			}
-		}
 		var txOutWithProofCs []*TxOutWithProofC
 		for _, item := range ring {
 			txOutWithProofCs = append(txOutWithProofCs, &TxOutWithProofC{
 				TxOut:                UnmarshalTxOut(item.TxOut),
 				TxOutMembershipProof: UnmarshalTxOutMembershipProof(item.Proof),
 			})
+		}
+		sort.Slice(txOutWithProofCs, func(i, j int) bool {
+			return bytes.Compare(txOutWithProofCs[i].TxOut.PublicKey.GetData(), txOutWithProofCs[j].TxOut.PublicKey.GetData()) == -1
+		})
+
+		for j, itemj := range txOutWithProofCs {
+			if itemi.TxOut.PublicKey == hex.EncodeToString(itemj.TxOut.PublicKey.GetData()) {
+				index = j
+				break
+			}
 		}
 		if inputSet[itemi.TxOut.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
@@ -98,10 +99,10 @@ func UnmarshalTxOut(input *TxOut) *types.TxOut {
 	return &types.TxOut{
 		MaskedAmount: &types.MaskedAmount{
 			Commitment: &types.CompressedRistretto{
-				Data: hexToBytes(input.Amount.Commitment),
+				Data: account.HexToBytes(input.Amount.Commitment),
 			},
 			MaskedValue:   uint64(input.Amount.MaskedValue),
-			MaskedTokenId: hexToBytes(input.Amount.MaskedTokenID),
+			MaskedTokenId: account.HexToBytes(input.Amount.MaskedTokenID),
 		},
 		TargetKey: &types.CompressedRistretto{
 			Data: hexToPoint(input.TargetKey).Bytes(),
@@ -110,10 +111,10 @@ func UnmarshalTxOut(input *TxOut) *types.TxOut {
 			Data: hexToPoint(input.PublicKey).Bytes(),
 		},
 		EFogHint: &types.EncryptedFogHint{
-			Data: hexToBytes(input.EFogHint),
+			Data: account.HexToBytes(input.EFogHint),
 		},
 		EMemo: &types.EncryptedMemo{
-			Data: hexToBytes(input.EMemo),
+			Data: account.HexToBytes(input.EMemo),
 		},
 	}
 }
@@ -127,7 +128,7 @@ func UnmarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMemb
 				To:   stringToUint64(e.Range.To),
 			},
 			Hash: &types.TxOutMembershipHash{
-				Data: hexToBytes(e.Hash),
+				Data: account.HexToBytes(e.Hash),
 			},
 		})
 	}

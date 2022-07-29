@@ -1,15 +1,6 @@
 package api
 
-// #cgo CFLAGS: -I${SRCDIR}/include
-// #cgo darwin LDFLAGS: ${SRCDIR}/include/libmobilecoin.a -framework Security -framework Foundation
-// #cgo linux LDFLAGS: ${SRCDIR}/include/libmobilecoin_linux.a -lm -ldl -lz
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <errno.h>
-// #include "libmobilecoin.h"
-import "C"
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -20,26 +11,25 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// mc_transaction_builder_create
-func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, version uint, recipient *account.PublicAddress, change *account.Account) error {
-	verifier, err := C.mc_verifier_create()
-	if err != nil {
-		return err
-	}
-	defer C.mc_verifier_free(verifier)
-	fog_resolver, err := C.mc_fog_resolver_create(verifier)
-	if err != nil {
-		return err
-	}
-	defer C.mc_fog_resolver_free(fog_resolver)
+// #cgo CFLAGS: -I${SRCDIR}/include
+// #cgo darwin LDFLAGS: ${SRCDIR}/include/libmobilecoin.a -framework Security -framework Foundation
+// #cgo linux LDFLAGS: ${SRCDIR}/include/libmobilecoin_linux.a -lm -ldl -lz
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <errno.h>
+// #include "libmobilecoin.h"
+import "C"
 
+// mc_transaction_builder_create
+func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account) error {
+	var fog_resolver *C.McFogResolver
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
 		return err
 	}
 	defer C.mc_memo_builder_free(memo_builder)
 
-	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(0), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
+	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
 	if err != nil {
 		return err
 	}
@@ -117,7 +107,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	}
 
 	// mc_transaction_builder_add_output
-	view_public_key_buf := hexToBytes(recipient.ViewPublicKey)
+	view_public_key_buf := account.HexToBytes(recipient.ViewPublicKey)
 	view_public_key_bytes := C.CBytes(view_public_key_buf)
 	defer C.free(view_public_key_bytes)
 	view_public := &C.McBuffer{
@@ -125,7 +115,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(view_public_key_buf)),
 	}
 
-	spend_public_key_buf := hexToBytes(recipient.SpendPublicKey)
+	spend_public_key_buf := account.HexToBytes(recipient.SpendPublicKey)
 	spend_public_key_bytes := C.CBytes(spend_public_key_buf)
 	defer C.free(spend_public_key_bytes)
 	spend_public := &C.McBuffer{
@@ -137,7 +127,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	defer C.free(unsafe.Pointer(report_url_recipient_str))
 	report_id_recipient_str := C.CString(recipient.FogReportId)
 	defer C.free(unsafe.Pointer(report_id_recipient_str))
-	sig_buf := hexToBytes(recipient.FogAuthoritySig)
+	sig_buf := account.HexToBytes(recipient.FogAuthoritySig)
 	sig_bytes := C.CBytes(sig_buf)
 	defer C.free(sig_bytes)
 	authority_sig := &C.McBuffer{
@@ -246,12 +236,4 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	}
 	log.Println(mcData)
 	return nil
-}
-
-func hexToBytes(text string) []byte {
-	buf, err := hex.DecodeString(text)
-	if err != nil {
-		panic(err)
-	}
-	return buf
 }
