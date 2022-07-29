@@ -3,8 +3,8 @@ package api
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"strconv"
+	"unsafe"
 
 	account "github.com/jadeydi/mobilecoin-account"
 )
@@ -18,10 +18,15 @@ import (
 // #include "libmobilecoin.h"
 import "C"
 
-func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPrivateKeyStr string) error {
+type TxOutAmount struct {
+	Value   uint64
+	TokenID uint64
+}
+
+func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPrivateKeyStr string) (*TxOutAmount, error) {
 	masked_amount, err := strconv.ParseUint(maskedAmountStr, 10, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	masked_token_id_buf := account.HexToBytes(maskedTokenIDStr)
 	masked_token_id_bytes := C.CBytes(masked_token_id_buf)
@@ -30,10 +35,11 @@ func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPriva
 		buffer: (*C.uint8_t)(masked_token_id_bytes),
 		len:    C.size_t(len(masked_token_id_buf)),
 	}
-	tx_out_masked_amount := &C.McTxOutMaskedAmount{
-		masked_value:    C.uint64_t(masked_amount),
-		masked_token_id: masked_token_id,
-	}
+	tx_out_masked_amount := (*C.McTxOutMaskedAmount)(C.malloc(C.sizeof_McTxOutMaskedAmount))
+	defer C.free(unsafe.Pointer(tx_out_masked_amount))
+	tx_out_masked_amount.masked_value = C.uint64_t(masked_amount)
+	tx_out_masked_amount.masked_token_id = masked_token_id
+
 	publicKey := account.HexToPoint(publicKeyStr)
 	public_key_buf := publicKey.Bytes()
 	public_key_bytes := C.CBytes(public_key_buf)
@@ -58,15 +64,17 @@ func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPriva
 	var out_error *C.McError
 	b, err := C.mc_tx_out_get_amount(tx_out_masked_amount, tx_out_public_key, view_private_key, out_amount, &out_error)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !b && out_error != nil {
 		err = fmt.Errorf("mc_tx_out_get_amount failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 		C.mc_error_free(out_error)
-		return err
+		return nil, err
 	}
-	log.Println(uint64(out_amount.value), uint64(out_amount.token_id))
-	return nil
+	return &TxOutAmount{
+		Value:   uint64(out_amount.value),
+		TokenID: uint64(out_amount.token_id),
+	}, nil
 }
 
 func McTxOutGetSharedSecret(publicKeyStr, viewPrivateKeyStr string) (string, error) {
