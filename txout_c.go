@@ -77,6 +77,60 @@ func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPriva
 	}, nil
 }
 
+func MCTxOutReconstructCommitment(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPrivateKeyStr string) (string, error) {
+	masked_amount, err := strconv.ParseUint(maskedAmountStr, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	masked_token_id_buf := account.HexToBytes(maskedTokenIDStr)
+	masked_token_id_bytes := C.CBytes(masked_token_id_buf)
+	defer C.free(masked_token_id_bytes)
+	masked_token_id := &C.McBuffer{
+		buffer: (*C.uint8_t)(masked_token_id_bytes),
+		len:    C.size_t(len(masked_token_id_buf)),
+	}
+	tx_out_masked_amount := (*C.McTxOutMaskedAmount)(C.malloc(C.sizeof_McTxOutMaskedAmount))
+	defer C.free(unsafe.Pointer(tx_out_masked_amount))
+	tx_out_masked_amount.masked_value = C.uint64_t(masked_amount)
+	tx_out_masked_amount.masked_token_id = masked_token_id
+
+	publicKey := account.HexToPoint(publicKeyStr)
+	public_key_buf := publicKey.Bytes()
+	public_key_bytes := C.CBytes(public_key_buf)
+	defer C.free(public_key_bytes)
+	tx_out_public_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(public_key_bytes),
+		len:    C.size_t(len(public_key_buf)),
+	}
+	viewPrivateKey := account.HexToScalar(viewPrivateKeyStr)
+	view_private_key_buf := viewPrivateKey.Bytes()
+	view_private_key_bytes := C.CBytes(view_private_key_buf)
+	defer C.free(view_private_key_bytes)
+	view_private_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(view_private_key_bytes),
+		len:    C.size_t(len(view_private_key_buf)),
+	}
+
+	out_commitment_buf := make([]byte, 32)
+	out_commitment_bytes := C.CBytes(out_commitment_buf)
+	defer C.free(out_commitment_bytes)
+	out_commitment := &C.McMutableBuffer{
+		buffer: (*C.uint8_t)(out_commitment_bytes),
+		len:    C.size_t(len(out_commitment_buf)),
+	}
+	var out_error *C.McError
+	b, err := C.mc_tx_out_reconstruct_commitment(tx_out_masked_amount, tx_out_public_key, view_private_key, out_commitment, &out_error)
+	if err != nil {
+		return "", err
+	}
+	if !b && out_error != nil {
+		err = fmt.Errorf("mc_tx_out_reconstruct_commitment failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+		C.mc_error_free(out_error)
+		return "", err
+	}
+	return hex.EncodeToString(C.GoBytes(out_commitment_bytes, 32)), nil
+}
+
 func McTxOutGetSharedSecret(publicKeyStr, viewPrivateKeyStr string) (string, error) {
 	publicKey := account.HexToPoint(publicKeyStr)
 	public_key_buf := publicKey.Bytes()
