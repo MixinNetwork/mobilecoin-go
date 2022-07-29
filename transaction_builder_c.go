@@ -39,7 +39,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 	}
 	defer C.mc_memo_builder_free(memo_builder)
 
-	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
+	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(0), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
 	if err != nil {
 		return err
 	}
