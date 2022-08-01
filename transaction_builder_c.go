@@ -3,11 +3,11 @@ package api
 import (
 	"errors"
 	"fmt"
-	"log"
 	"unsafe"
 
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
+	"github.com/jadeydi/mobilecoin-account/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,20 +21,20 @@ import (
 import "C"
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account) error {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account) (*types.Tx, error) {
 	var fog_resolver *C.McFogResolver
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer C.mc_memo_builder_free(memo_builder)
 
 	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if transaction_builder == nil {
-		return errors.New("mc_transaction_builder_create error")
+		return nil, errors.New("mc_transaction_builder_create error")
 	}
 	defer C.mc_transaction_builder_free(transaction_builder)
 
@@ -58,14 +58,14 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 
 		ring, err := C.mc_transaction_builder_ring_create()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer C.mc_transaction_builder_ring_free(ring)
 
 		for _, r := range input.TxOutWithProofCs {
 			tx_out_buf, err := proto.Marshal(r.TxOut)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			tx_out_proto_bytes := C.CBytes(tx_out_buf)
 			defer C.free(tx_out_proto_bytes)
@@ -75,7 +75,7 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			}
 			membership_proof_buf, err := proto.Marshal(r.TxOutMembershipProof)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			membership_proof_proto_bytes := C.CBytes(membership_proof_buf)
 			defer C.free(membership_proof_proto_bytes)
@@ -85,23 +85,23 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			}
 			b, err := C.mc_transaction_builder_ring_add_element(ring, tx_out_proto, membership_proof_proto)
 			if err != nil {
-				return err
+				return nil, err
 			} else if !b {
-				return errors.New("mc_transaction_builder_ring_add_element failure")
+				return nil, errors.New("mc_transaction_builder_ring_add_element failure")
 			}
 		}
 
 		var out_error *C.McError
 		b, err := C.mc_transaction_builder_add_input(transaction_builder, view_private_key, subaddress_spend_private_key, C.size_t(input.RealIndex), ring, &out_error)
 		if err != nil {
-			return err
+			return nil, err
 		} else if !b {
 			if out_error == nil {
-				return fmt.Errorf("mc_transaction_builder_add_input failure")
+				return nil, fmt.Errorf("mc_transaction_builder_add_input failure")
 			} else {
 				err = fmt.Errorf("mc_transaction_builder_add_input failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 				C.mc_error_free(out_error)
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -134,16 +134,16 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		buffer: (*C.uint8_t)(sig_bytes),
 		len:    C.size_t(len(sig_buf)),
 	}
-	fog_info := &C.McPublicAddressFogInfo{
-		report_url:    (*C.char)(report_url_recipient_str),
-		report_id:     (*C.char)(report_id_recipient_str),
-		authority_sig: authority_sig,
-	}
-	recipient_address := &C.McPublicAddress{
-		view_public_key:  view_public,
-		spend_public_key: spend_public,
-		fog_info:         fog_info,
-	}
+	fog_info := (*C.McPublicAddressFogInfo)(C.malloc(C.sizeof_McPublicAddressFogInfo))
+	defer C.free(unsafe.Pointer(fog_info))
+	fog_info.report_url = (*C.char)(report_url_recipient_str)
+	fog_info.report_id = (*C.char)(report_id_recipient_str)
+	fog_info.authority_sig = authority_sig
+	recipient_address := (*C.McPublicAddress)(C.malloc(C.sizeof_McPublicAddress))
+	defer C.free(unsafe.Pointer(recipient_address))
+	recipient_address.view_public_key = view_public
+	recipient_address.spend_public_key = spend_public
+	recipient_address.fog_info = fog_info
 
 	var rRecipient ristretto.Scalar
 	rRecipient.Rand()
@@ -164,16 +164,16 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 		len:    C.size_t(len(confirmation_recipient_buf)),
 	}
 
-	var rng_callback C.McRngCallback
+	var rng_callback *C.McRngCallback
 	var out_error *C.McError
-	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, &rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
+	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if out_error != nil {
 		err = fmt.Errorf("mc_transaction_builder_add_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 		C.mc_error_free(out_error)
-		return err
+		return nil, err
 	}
 	// mc_transaction_builder_add_change_output
 	if changeAmount > 0 {
@@ -191,12 +191,10 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			buffer: (*C.uint8_t)(spend_private_key_change_bytes),
 			len:    C.size_t(len(spend_private_key_change_buf)),
 		}
-		var fog_info_change *C.McAccountKeyFogInfo
-		account_key := &C.McAccountKey{
-			view_private_key:  view_private_key_change,
-			spend_private_key: spend_private_key_change,
-			fog_info:          fog_info_change,
-		}
+		account_key := (*C.McAccountKey)(C.malloc(C.sizeof_McAccountKey))
+		defer C.free(unsafe.Pointer(account_key))
+		account_key.view_private_key = view_private_key_change
+		account_key.spend_private_key = spend_private_key_change
 
 		spendPrivateChange := change.SubaddressSpendPrivateKey(0)
 		viewPublicChange := account.PublicKey(change.SubaddressViewPrivateKey(spendPrivateChange))
@@ -219,21 +217,42 @@ func MCTransactionBuilderCreate(inputCs []*InputC, amount, changeAmount, fee, to
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), &rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, &out_error)
+		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, &out_error)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if out_error != nil {
-			err = fmt.Errorf("mc_transaction_builder_add_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+			err = fmt.Errorf("mc_transaction_builder_add_change_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 			C.mc_error_free(out_error)
-			return err
+			return nil, err
 		}
 	}
 
-	mcData, err := C.mc_transaction_builder_build(transaction_builder, &rng_callback, &out_error)
+	mcData, err := C.mc_transaction_builder_build(transaction_builder, rng_callback, &out_error)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	log.Println(mcData)
-	return nil
+	if out_error != nil {
+		err = fmt.Errorf("mc_transaction_builder_build failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+		C.mc_error_free(out_error)
+		return nil, err
+	}
+	defer C.mc_data_free(mcData)
+	var out_size_bytes *C.McMutableBuffer
+	data_size := C.mc_data_get_bytes(mcData, out_size_bytes)
+
+	out_data_buf := make([]byte, int(data_size))
+	out_data_bytes := C.CBytes(out_data_buf)
+	defer C.free(out_data_bytes)
+	out_data := &C.McMutableBuffer{
+		buffer: (*C.uint8_t)(out_data_bytes),
+		len:    C.size_t(len(out_data_buf)),
+	}
+	data_size = C.mc_data_get_bytes(mcData, out_data)
+	tx := &types.Tx{}
+	err = proto.Unmarshal(C.GoBytes(out_data_bytes, C.int(data_size)), tx)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
