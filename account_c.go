@@ -102,10 +102,10 @@ func MCTxOutMatchesSubaddress(txOutTargetKeyStr, txOutPublicKeyStr, viewPrivateK
 	var result bool
 	b, err := C.mc_tx_out_matches_subaddress(tx_out_target_key, tx_out_public_key, view_private_key, subadress_spend_private_key, (*C.bool)(&result))
 	if err != nil {
-		return result, err
+		return false, err
 	}
 	if !b {
-		return result, errors.New("invalid private key")
+		return false, errors.New("invalid private key")
 	}
 	return result, nil
 }

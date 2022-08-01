@@ -85,15 +85,16 @@ func RecoverOnetimePrivateKey(public, private string) (*ristretto.Scalar, error)
 	view := private[:64]
 	spend := private[64:]
 
-	account, err := account.NewAccountKey(view, spend)
+	acc, err := account.NewAccountKey(view, spend)
 	if err != nil {
 		return nil, err
 	}
 
+	d := acc.SubaddressSpendPrivateKey(0)
+
 	pk := hexToPoint(public)
 	// `Hs( a * R )`
-	Hs := hashToScalar(pk, account.ViewPrivateKey)
-	d := account.SubaddressSpendPrivateKey(0)
+	Hs := hashToScalar(pk, acc.ViewPrivateKey)
 
 	var x ristretto.Scalar
 	return x.Add(Hs, d), nil
