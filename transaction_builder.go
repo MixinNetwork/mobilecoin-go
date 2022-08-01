@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/bwesterb/go-ristretto"
@@ -177,4 +179,59 @@ func (tb *TransactionBuilder) Build() (*Tx, error) {
 		Prefix:    txPrefix,
 		Signature: signatures,
 	}, nil
+}
+
+func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64) error {
+	recipient, err := account.DecodeB58Code(output)
+	if err != nil {
+		return err
+	}
+	if len(changePrivate) != 128 {
+		return errors.New("invalid change private")
+	}
+	change, err := account.NewAccountKey(changePrivate[:64], changePrivate[64:])
+	if err != nil {
+		return err
+	}
+
+	var totalAmount uint64 = 0
+	unspentList := make([]*UnspentTxOut, len(inputs))
+	for i, input := range inputs {
+		totalAmount += input.Amount
+
+		data, err := hex.DecodeString(input.ScriptPubKey)
+		if err != nil {
+			return err
+		}
+		var txOut TxOut
+		err = json.Unmarshal(data, &txOut)
+		if err != nil {
+			return err
+		}
+
+		onetimePrivateKey, err := RecoverOnetimePrivateKey(txOut.PublicKey, input.PrivateKey)
+		if err != nil {
+			return err
+		}
+
+		unspentList[i] = &UnspentTxOut{
+			TxOut:                   txOut,
+			SubaddressIndex:         0,
+			KeyImage:                hex.EncodeToString(KeyImageFromPrivate(onetimePrivateKey).Bytes()),
+			Value:                   fmt.Sprint(input.Amount),
+			AttemptedSpendHeight:    0,
+			AttemptedSpendTombstone: 0,
+			MonitorId:               "",
+		}
+	}
+
+	changeAmount = totalAmount - amount
+	if changeAmount <= 10*MILLIMOB_TO_PICOMOB {
+		changeAmount = 0
+		fee += changeAmount
+	}
+
+	if totalAmount != amount+fee+changeAmount {
+		return errors.New("invalid amount")
+	}
 }
