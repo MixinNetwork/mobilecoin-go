@@ -26,7 +26,7 @@ type InputC struct {
 }
 
 // mc_transaction_builder_ring_add_element
-func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
+func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 	inputSet := make(map[string]*UTXO)
 	for _, utxo := range utxos {
 		if len(utxo.ScriptPubKey) < 8 {
@@ -64,8 +64,8 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		var txOutWithProofCs []*TxOutWithProofC
 		for _, item := range ring {
 			txOutWithProofCs = append(txOutWithProofCs, &TxOutWithProofC{
-				TxOut:                UnmarshalTxOut(item.TxOut),
-				TxOutMembershipProof: UnmarshalTxOutMembershipProof(item.Proof),
+				TxOut:                MarshalTxOut(item.TxOut),
+				TxOutMembershipProof: MarshalTxOutMembershipProof(item.Proof),
 			})
 		}
 		sort.Slice(txOutWithProofCs, func(i, j int) bool {
@@ -81,7 +81,8 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 		if inputSet[itemi.TxOut.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
 		}
-		acc, err := account.NewAccountKey(viewPrivate, inputSet[itemi.TxOut.PublicKey].PrivateKey)
+		source := inputSet[itemi.TxOut.PublicKey].PrivateKey
+		acc, err := account.NewAccountKey(source[:64], source[64:])
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +96,7 @@ func BuildRingElements(viewPrivate string, utxos []*UTXO, proofs *Proofs) ([]*In
 	return inputCs, nil
 }
 
-func UnmarshalTxOut(input *TxOut) *types.TxOut {
+func MarshalTxOut(input *TxOut) *types.TxOut {
 	return &types.TxOut{
 		MaskedAmount: &types.MaskedAmount{
 			Commitment: &types.CompressedRistretto{
@@ -119,7 +120,7 @@ func UnmarshalTxOut(input *TxOut) *types.TxOut {
 	}
 }
 
-func UnmarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMembershipProof {
+func MarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMembershipProof {
 	var elements []*types.TxOutMembershipElement
 	for _, e := range proof.Elements {
 		elements = append(elements, &types.TxOutMembershipElement{

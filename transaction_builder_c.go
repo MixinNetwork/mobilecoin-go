@@ -21,7 +21,7 @@ import (
 import "C"
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account) (*types.Tx, error) {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account, outRandom, changeRandom *ristretto.Scalar) (*types.Tx, error) {
 	var fog_resolver *C.McFogResolver
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
@@ -145,10 +145,8 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 	recipient_address.spend_public_key = spend_public
 	recipient_address.fog_info = fog_info
 
-	var rRecipient ristretto.Scalar
-	rRecipient.Rand()
 	viewPublicKeyRecipient := hexToPoint(recipient.ViewPublicKey)
-	secretRecipient := createSharedSecret(viewPublicKeyRecipient, &rRecipient)
+	secretRecipient := createSharedSecret(viewPublicKeyRecipient, outRandom)
 	secret_recipient_buf := secretRecipient.Bytes()
 	secret_recipient_bytes := C.CBytes(secret_recipient_buf)
 	defer C.free(secret_recipient_bytes)
@@ -198,9 +196,8 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 
 		spendPrivateChange := change.SubaddressSpendPrivateKey(0)
 		viewPublicChange := account.PublicKey(change.SubaddressViewPrivateKey(spendPrivateChange))
-		var rChange ristretto.Scalar
-		rChange.Rand()
-		secretChange := createSharedSecret(viewPublicChange, &rChange)
+
+		secretChange := createSharedSecret(viewPublicChange, changeRandom)
 		secret_change_buf := secretChange.Bytes()
 		secret_change_bytes := C.CBytes(secret_change_buf)
 		defer C.free(secret_change_bytes)

@@ -10,7 +10,7 @@ require (
 	github.com/bwesterb/go-ristretto v1.2.1
 	github.com/dchest/blake2b v1.0.0
 	github.com/gtank/merlin v0.1.1
-	github.com/jadeydi/mobilecoin-account v1.2.3
+	github.com/jadeydi/mobilecoin-account v1.2.5
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa
 	google.golang.org/grpc v1.48.0

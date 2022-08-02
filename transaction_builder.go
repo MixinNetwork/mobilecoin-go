@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
+	"github.com/jadeydi/mobilecoin-account/types"
 )
 
 const (
@@ -181,17 +182,28 @@ func (tb *TransactionBuilder) Build() (*Tx, error) {
 	}, nil
 }
 
-func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64) error {
+type Output struct {
+	TransactionHash string
+	RawTransaction  string
+	Fee             uint64
+	OutputIndex     int64
+	OutputHash      string
+	ChangeIndex     int64
+	ChangeHash      string
+	ChangeAmount    uint64
+}
+
+func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64, tokenID, version uint) (*Output, error) {
 	recipient, err := account.DecodeB58Code(output)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(changePrivate) != 128 {
-		return errors.New("invalid change private")
+		return nil, errors.New("invalid change private")
 	}
 	change, err := account.NewAccountKey(changePrivate[:64], changePrivate[64:])
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var totalAmount uint64 = 0
@@ -201,23 +213,23 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 
 		data, err := hex.DecodeString(input.ScriptPubKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		var txOut TxOut
 		err = json.Unmarshal(data, &txOut)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		onetimePrivateKey, err := RecoverOnetimePrivateKey(txOut.PublicKey, input.PrivateKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
+		image := hex.EncodeToString(KeyImageFromPrivate(onetimePrivateKey).Bytes())
 		unspentList[i] = &UnspentTxOut{
 			TxOut:                   txOut,
 			SubaddressIndex:         0,
-			KeyImage:                hex.EncodeToString(KeyImageFromPrivate(onetimePrivateKey).Bytes()),
+			KeyImage:                image,
 			Value:                   fmt.Sprint(input.Amount),
 			AttemptedSpendHeight:    0,
 			AttemptedSpendTombstone: 0,
@@ -225,13 +237,188 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 		}
 	}
 
-	changeAmount = totalAmount - amount
+	changeAmount := totalAmount - amount
 	if changeAmount <= 10*MILLIMOB_TO_PICOMOB {
 		changeAmount = 0
 		fee += changeAmount
 	}
-
+	if changeAmount > 0 && changeAmount <= 10*MILLIMOB_TO_PICOMOB {
+		return nil, errors.New("invalid change amount")
+	}
 	if totalAmount != amount+fee+changeAmount {
-		return errors.New("invalid amount")
+		return nil, errors.New("invalid amount")
+	}
+	inputCs, err := BuildRingElements(inputs, proofs)
+	if err != nil {
+		return nil, err
+	}
+
+	var randomPrivateOut ristretto.Scalar
+	randomPrivateOut.Rand()
+	var randomPrivateChange ristretto.Scalar
+	randomPrivateChange.Rand()
+	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, &randomPrivateOut, &randomPrivateChange)
+	if err != nil {
+		return nil, err
+	}
+
+	size := 1
+	if changeAmount > 0 {
+		size = 2
+	}
+	hashOutput := hex.EncodeToString(createTxPublicKey(randomPrivateOut, account.HexToPoint(recipient.SpendPublicKey)).Bytes())
+	outlayList := make([]*Outlay, size)
+	outlayIndexToTxOutIndex := make([][]int, size)
+	outlayConfirmationNumbers := make([][]int, size)
+
+	outlayList[0] = &Outlay{
+		Value:    fmt.Sprint(amount),
+		Receiver: recipient,
+	}
+	outlayIndexToTxOutIndex[0] = []int{0, 0}
+	viewOut := account.HexToPoint(recipient.ViewPublicKey)
+	secretOut := createSharedSecret(viewOut, randomPrivateOut)
+	confirmationOut := ConfirmationNumberFromSecret(secretOut)
+	numsOut := make([]int, len(confirmationOut))
+	for i, b := range confirmationOut {
+		numsOut[i] = int(b)
+	}
+	outlayConfirmationNumbers[0] = numsOut
+
+	var hashChange string
+	if changeAmount > 0 {
+		changeAddress := change.PublicAddress(0)
+		hashChange := hex.EncodeToString(createTxPublicKey(randomPrivateChange, account.HexToPoint(changeAddress.SpendPublicKey)).Bytes())
+		outlayList[1] = &Outlay{
+			Value:    fmt.Sprint(changeAmount),
+			Receiver: recipient,
+		}
+		outlayIndexToTxOutIndex[1] = []int{1, 1}
+		viewChange := account.HexToPoint(changeAddress.ViewPublicKey)
+		secretChange := createSharedSecret(viewChange, randomPrivateChange)
+		confirmationChange := ConfirmationNumberFromSecret(secretChange)
+		numsChange := make([]int, len(confirmationChange))
+		for i, b := range confirmationChange {
+			numsChange[i] = int(b)
+		}
+		outlayConfirmationNumbers[1] = numsChange
+	}
+	tx := UnmarshalTx(txc)
+
+	txProposal := TxProposal{
+		InputList:                 unspentList,
+		OutlayList:                outlayList,
+		Tx:                        tx,
+		Fee:                       fee,
+		OutlayIndexToTxOutIndex:   outlayIndexToTxOutIndex,
+		OutlayConfirmationNumbers: outlayConfirmationNumbers,
+	}
+
+	script, err := json.Marshal(txProposal)
+	if err != nil {
+		return nil, err
+	}
+	return &Output{
+		TransactionHash: hashOutput,
+		RawTransaction:  hex.EncodeToString(randomPrivateOut.Bytes()) + ":" + hex.EncodeToString(script),
+		Fee:             fee,
+		OutputIndex:     0,
+		OutputHash:      hashOutput,
+		ChangeIndex:     0,
+		ChangeHash:      hashChange,
+		ChangeAmount:    change,
+	}, nil
+}
+
+func UnmarshalTx(Tx *types.Tx) *Tx {
+	// TxPrefix
+	prefixS := tx.TxPrefix
+	ins := make([]*TxIn, len(prefixS.Inputs))
+	for i, in := range prefixS.Inputs {
+		ring := make([]*TxOut, len(in.Ring))
+		for i, r := range in.Ring {
+			ring[i] = UnmarshalTxOut(r)
+		}
+		proofs := make([]*TxOutMembershipProof, len(in.Proofs))
+		for i, p := range in.TxOutMembershipProof {
+			proofs[i] = UnmarshalTxOutMembershipProof(p)
+		}
+		ins[i] = &TxIn{
+			Ring:   ring,
+			Proofs: proofs,
+		}
+	}
+
+	outs := make([]*TxOut, len(prefixS.Outputs))
+	for i, out := range prefixS.Outputs {
+		outs[i] = UnmarshalTxOut(out)
+	}
+
+	prefix := &TxPrefix{
+		Inputs:         ins,
+		Outputs:        outs,
+		Fee:            prefixS.Fee,
+		TombstoneBlock: prefixS.TombstoneBlock,
+	}
+
+	return &Tx{
+		Prefix:    prefix,
+		Signature: UnmarshalSignatureRctBulletproofs(tx.SignRctBulletproofs),
+	}
+}
+
+func UnmarshalTxOut(out *types.TxOut) *TxOut {
+	return &TxOut{
+		MaskedAmount: &MaskedAmount{
+			Commitment:    hex.EncodeToString(out.MaskedAmount.Commitment.GetData()),
+			MaskedValue:   out.MaskedAmount.MaskedValue,
+			MaskedTokenId: hex.EncodeToString(out.MaskedAmount.MaskedTokenId),
+		},
+		TargetKey: hex.EncodeToString(out.TargetKey.GetData()),
+		PublicKey: hex.EncodeToString(out.PublicKey.GetData()),
+		EFogHint:  hex.EncodeToString(out.EFogHint.GetData()),
+		EMemo:     hex.EncodeToString(out.EMemo.GetData()),
+	}
+}
+
+func UnmarshalTxOutMembershipProof(proof *types.TxOutMembershipProof) *TxOutMembershipProof {
+	elements := make([]*TxOutMembershipElement, len(proof.Elements))
+	for i, e := range proof.Elements {
+		elements[i] = &TxOutMembershipElement{
+			Range: &Range{
+				From: fmt.Sprint(e.From),
+				To:   fmt.Sprint(e.To),
+			},
+			Hash: hex.EncodeToString(e.Hash.GetData()),
+		}
+	}
+	return &TxOutMembershipProof{
+		Index:        proof.Index,
+		HighestIndex: proof.HighestIndex,
+		Elements:     elements,
+	}
+}
+
+func UnmarshalSignatureRctBulletproofs(signature *types.SignatureRctBulletproofs) *SignatureRctBulletproofs {
+	commitments := make([]string, len(signature.PseudoOutputCommitments))
+	for i, c := range signature.PseudoOutputCommitments {
+		commitments[i] = hex.EncodeToString(c.GetData())
+	}
+	return &SignatureRctBulletproofs{
+		RingSignatures:          UnmarshalRingMLSAG(signature.RingSignatures),
+		PseudoOutputCommitments: commitments,
+		RangeProofBytes:         hex.EncodeToString(signature.RangeProofBytes.GetData()),
+	}
+}
+
+func UnmarshalRingMLSAG(mlsag types.RingMLSAG) *RingMLSAG {
+	responses := make([]string, len(mlsag.Responses))
+	for i, resp := range mlsag.Responses {
+		responses[i] = hex.EncodeToString(resp.GetData())
+	}
+	return &RingMLSAG{
+		CZero:     hex.EncodeToString(mlsag.CZero.GetData()),
+		Responses: responses,
+		KeyImage:  hex.EncodeToString(mlsag.KeyImage.GetData()),
 	}
 }
