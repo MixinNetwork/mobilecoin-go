@@ -193,7 +193,7 @@ type Output struct {
 	ChangeAmount    uint64
 }
 
-func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64, tokenID, version uint) (*Output, error) {
+func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64, tokenID, version uint) (*Output, error) {
 	recipient, err := account.DecodeB58Code(output)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 		}
 		image := hex.EncodeToString(KeyImageFromPrivate(onetimePrivateKey).Bytes())
 		unspentList[i] = &UnspentTxOut{
-			TxOut:                   txOut,
+			TxOut:                   &txOut,
 			SubaddressIndex:         0,
 			KeyImage:                image,
 			Value:                   fmt.Sprint(input.Amount),
@@ -238,11 +238,11 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 	}
 
 	changeAmount := totalAmount - amount
-	if changeAmount <= 10*MILLIMOB_TO_PICOMOB {
+	if changeAmount <= MILLIMOB_TO_PICOMOB {
 		changeAmount = 0
 		fee += changeAmount
 	}
-	if changeAmount > 0 && changeAmount <= 10*MILLIMOB_TO_PICOMOB {
+	if changeAmount > 0 && changeAmount <= MILLIMOB_TO_PICOMOB {
 		return nil, errors.New("invalid change amount")
 	}
 	if totalAmount != amount+fee+changeAmount {
@@ -266,7 +266,7 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 	if changeAmount > 0 {
 		size = 2
 	}
-	hashOutput := hex.EncodeToString(createTxPublicKey(randomPrivateOut, account.HexToPoint(recipient.SpendPublicKey)).Bytes())
+	hashOutput := hex.EncodeToString(createTxPublicKey(&randomPrivateOut, account.HexToPoint(recipient.SpendPublicKey)).Bytes())
 	outlayList := make([]*Outlay, size)
 	outlayIndexToTxOutIndex := make([][]int, size)
 	outlayConfirmationNumbers := make([][]int, size)
@@ -277,7 +277,7 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 	}
 	outlayIndexToTxOutIndex[0] = []int{0, 0}
 	viewOut := account.HexToPoint(recipient.ViewPublicKey)
-	secretOut := createSharedSecret(viewOut, randomPrivateOut)
+	secretOut := createSharedSecret(viewOut, &randomPrivateOut)
 	confirmationOut := ConfirmationNumberFromSecret(secretOut)
 	numsOut := make([]int, len(confirmationOut))
 	for i, b := range confirmationOut {
@@ -288,14 +288,14 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 	var hashChange string
 	if changeAmount > 0 {
 		changeAddress := change.PublicAddress(0)
-		hashChange := hex.EncodeToString(createTxPublicKey(randomPrivateChange, account.HexToPoint(changeAddress.SpendPublicKey)).Bytes())
+		hashChange = hex.EncodeToString(createTxPublicKey(&randomPrivateChange, account.HexToPoint(changeAddress.SpendPublicKey)).Bytes())
 		outlayList[1] = &Outlay{
 			Value:    fmt.Sprint(changeAmount),
 			Receiver: recipient,
 		}
 		outlayIndexToTxOutIndex[1] = []int{1, 1}
 		viewChange := account.HexToPoint(changeAddress.ViewPublicKey)
-		secretChange := createSharedSecret(viewChange, randomPrivateChange)
+		secretChange := createSharedSecret(viewChange, &randomPrivateChange)
 		confirmationChange := ConfirmationNumberFromSecret(secretChange)
 		numsChange := make([]int, len(confirmationChange))
 		for i, b := range confirmationChange {
@@ -303,7 +303,7 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 		}
 		outlayConfirmationNumbers[1] = numsChange
 	}
-	tx := UnmarshalTx(txc)
+	tx := UnmarshalTx(txC)
 
 	txProposal := TxProposal{
 		InputList:                 unspentList,
@@ -326,21 +326,26 @@ func TransactionBuilderBuild(viewPrivate string, inputs []*UTXO, proofs *Proofs,
 		OutputHash:      hashOutput,
 		ChangeIndex:     0,
 		ChangeHash:      hashChange,
-		ChangeAmount:    change,
+		ChangeAmount:    changeAmount,
 	}, nil
 }
 
-func UnmarshalTx(Tx *types.Tx) *Tx {
-	// TxPrefix
-	prefixS := tx.TxPrefix
-	ins := make([]*TxIn, len(prefixS.Inputs))
-	for i, in := range prefixS.Inputs {
+func UnmarshalTx(tx *types.Tx) *Tx {
+	return &Tx{
+		Prefix:    UnmarshalPrefix(tx.Prefix),
+		Signature: UnmarshalSignatureRctBulletproofs(tx.Signature),
+	}
+}
+
+func UnmarshalPrefix(prefix *types.TxPrefix) *TxPrefix {
+	ins := make([]*TxIn, len(prefix.Inputs))
+	for i, in := range prefix.Inputs {
 		ring := make([]*TxOut, len(in.Ring))
 		for i, r := range in.Ring {
 			ring[i] = UnmarshalTxOut(r)
 		}
 		proofs := make([]*TxOutMembershipProof, len(in.Proofs))
-		for i, p := range in.TxOutMembershipProof {
+		for i, p := range in.Proofs {
 			proofs[i] = UnmarshalTxOutMembershipProof(p)
 		}
 		ins[i] = &TxIn{
@@ -349,30 +354,25 @@ func UnmarshalTx(Tx *types.Tx) *Tx {
 		}
 	}
 
-	outs := make([]*TxOut, len(prefixS.Outputs))
-	for i, out := range prefixS.Outputs {
+	outs := make([]*TxOut, len(prefix.Outputs))
+	for i, out := range prefix.Outputs {
 		outs[i] = UnmarshalTxOut(out)
 	}
 
-	prefix := &TxPrefix{
+	return &TxPrefix{
 		Inputs:         ins,
 		Outputs:        outs,
-		Fee:            prefixS.Fee,
-		TombstoneBlock: prefixS.TombstoneBlock,
-	}
-
-	return &Tx{
-		Prefix:    prefix,
-		Signature: UnmarshalSignatureRctBulletproofs(tx.SignRctBulletproofs),
+		Fee:            FeeValue(prefix.Fee),
+		TombstoneBlock: TombstoneValue(prefix.TombstoneBlock),
 	}
 }
 
 func UnmarshalTxOut(out *types.TxOut) *TxOut {
 	return &TxOut{
-		MaskedAmount: &MaskedAmount{
+		Amount: &Amount{
 			Commitment:    hex.EncodeToString(out.MaskedAmount.Commitment.GetData()),
-			MaskedValue:   out.MaskedAmount.MaskedValue,
-			MaskedTokenId: hex.EncodeToString(out.MaskedAmount.MaskedTokenId),
+			MaskedValue:   MaskedValue(out.MaskedAmount.MaskedValue),
+			MaskedTokenID: hex.EncodeToString(out.MaskedAmount.MaskedTokenId),
 		},
 		TargetKey: hex.EncodeToString(out.TargetKey.GetData()),
 		PublicKey: hex.EncodeToString(out.PublicKey.GetData()),
@@ -386,32 +386,36 @@ func UnmarshalTxOutMembershipProof(proof *types.TxOutMembershipProof) *TxOutMemb
 	for i, e := range proof.Elements {
 		elements[i] = &TxOutMembershipElement{
 			Range: &Range{
-				From: fmt.Sprint(e.From),
-				To:   fmt.Sprint(e.To),
+				From: fmt.Sprint(e.Range.From),
+				To:   fmt.Sprint(e.Range.To),
 			},
 			Hash: hex.EncodeToString(e.Hash.GetData()),
 		}
 	}
 	return &TxOutMembershipProof{
-		Index:        proof.Index,
-		HighestIndex: proof.HighestIndex,
+		Index:        fmt.Sprint(proof.Index),
+		HighestIndex: fmt.Sprint(proof.HighestIndex),
 		Elements:     elements,
 	}
 }
 
 func UnmarshalSignatureRctBulletproofs(signature *types.SignatureRctBulletproofs) *SignatureRctBulletproofs {
+	signatures := make([]*RingMLSAG, len(signature.RingSignatures))
+	for i, s := range signature.RingSignatures {
+		signatures[i] = UnmarshalRingMLSAG(s)
+	}
 	commitments := make([]string, len(signature.PseudoOutputCommitments))
 	for i, c := range signature.PseudoOutputCommitments {
 		commitments[i] = hex.EncodeToString(c.GetData())
 	}
 	return &SignatureRctBulletproofs{
-		RingSignatures:          UnmarshalRingMLSAG(signature.RingSignatures),
+		RingSignatures:          signatures,
 		PseudoOutputCommitments: commitments,
-		RangeProofBytes:         hex.EncodeToString(signature.RangeProofBytes.GetData()),
+		RangeProofs:             hex.EncodeToString(signature.RangeProofBytes),
 	}
 }
 
-func UnmarshalRingMLSAG(mlsag types.RingMLSAG) *RingMLSAG {
+func UnmarshalRingMLSAG(mlsag *types.RingMLSAG) *RingMLSAG {
 	responses := make([]string, len(mlsag.Responses))
 	for i, resp := range mlsag.Responses {
 		responses[i] = hex.EncodeToString(resp.GetData())

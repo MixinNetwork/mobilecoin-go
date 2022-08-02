@@ -87,7 +87,7 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 			return nil, err
 		}
 		inputCs = append(inputCs, &InputC{
-			ViewPrivate:            hexToScalar(viewPrivate),
+			ViewPrivate:            hexToScalar(source[:64]),
 			SubAddressSpendPrivate: acc.SubaddressSpendPrivateKey(0),
 			RealIndex:              index,
 			TxOutWithProofCs:       txOutWithProofCs,
