@@ -237,7 +237,7 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		}
 	}
 
-	changeAmount := totalAmount - amount
+	changeAmount := totalAmount - amount - fee
 	if changeAmount <= MILLIMOB_TO_PICOMOB {
 		changeAmount = 0
 		fee += changeAmount
@@ -245,7 +245,7 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 	if changeAmount > 0 && changeAmount <= MILLIMOB_TO_PICOMOB {
 		return nil, errors.New("invalid change amount")
 	}
-	if totalAmount != amount+fee+changeAmount {
+	if totalAmount != (amount + fee + changeAmount) {
 		return nil, errors.New("invalid amount")
 	}
 	inputCs, err := BuildRingElements(inputs, proofs)
