@@ -1,11 +1,9 @@
 package api
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strconv"
 
 	"github.com/bwesterb/go-ristretto"
@@ -61,23 +59,14 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 			ring[index] = itemi
 		}
 
-		var txOutWithProofCs []*TxOutWithProofC
-		for _, item := range ring {
-			txOutWithProofCs = append(txOutWithProofCs, &TxOutWithProofC{
-				TxOut:                MarshalTxOut(item.TxOut),
-				TxOutMembershipProof: MarshalTxOutMembershipProof(item.Proof),
-			})
-		}
-		sort.Slice(txOutWithProofCs, func(i, j int) bool {
-			return bytes.Compare(txOutWithProofCs[i].TxOut.PublicKey.GetData(), txOutWithProofCs[j].TxOut.PublicKey.GetData()) == -1
-		})
-
-		for j, itemj := range txOutWithProofCs {
-			if itemi.TxOut.PublicKey == hex.EncodeToString(itemj.TxOut.PublicKey.GetData()) {
-				index = j
-				break
+		txOutWithProofCs := make([]*TxOutWithProofC, len(ring))
+		for j, _ := range ring {
+			txOutWithProofCs[j] = &TxOutWithProofC{
+				TxOut:                MarshalTxOut(ring[j].TxOut),
+				TxOutMembershipProof: MarshalTxOutMembershipProof(ring[j].Proof),
 			}
 		}
+
 		if inputSet[itemi.TxOut.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
 		}

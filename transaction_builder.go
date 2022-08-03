@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/bwesterb/go-ristretto"
@@ -313,6 +314,12 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		OutlayIndexToTxOutIndex:   outlayIndexToTxOutIndex,
 		OutlayConfirmationNumbers: outlayConfirmationNumbers,
 	}
+
+	txx := map[string]*TxProposal{
+		"tx_proposal": &txProposal,
+	}
+	ddd, _ := json.Marshal(txx)
+	log.Println(string(ddd))
 
 	script, err := json.Marshal(txProposal)
 	if err != nil {
