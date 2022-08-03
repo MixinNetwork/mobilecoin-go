@@ -55,6 +55,9 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 				break
 			}
 		}
+		if len(ring) == 0 {
+			ring = append(ring, itemi)
+		}
 		if index == 0 {
 			ring[index] = itemi
 		}
