@@ -21,7 +21,7 @@ import (
 import "C"
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient *account.PublicAddress, change *account.Account, outRandom, changeRandom *ristretto.Scalar) (*types.Tx, error) {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, outRandom, changeRandom *ristretto.Scalar) (*types.Tx, error) {
 	var fog_resolver *C.McFogResolver
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
@@ -173,53 +173,69 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		C.mc_error_free(out_error)
 		return nil, err
 	}
-	// mc_transaction_builder_add_change_output
+	// mc_transaction_builder_add_output for change
 	if changeAmount > 0 {
-		view_private_key_change_buf := change.ViewPrivateKey.Bytes()
-		view_private_key_change_bytes := C.CBytes(view_private_key_change_buf)
-		defer C.free(view_private_key_change_bytes)
-		view_private_key_change := &C.McBuffer{
-			buffer: (*C.uint8_t)(view_private_key_change_bytes),
-			len:    C.size_t(len(view_private_key_change_buf)),
+		view_public_key_change_buf := account.HexToBytes(change.ViewPublicKey)
+		view_public_key_change_bytes := C.CBytes(view_public_key_change_buf)
+		defer C.free(view_public_key_change_bytes)
+		view_public_change := &C.McBuffer{
+			buffer: (*C.uint8_t)(view_public_key_change_bytes),
+			len:    C.size_t(len(view_public_key_change_buf)),
 		}
-		spend_private_key_change_buf := change.SpendPrivateKey.Bytes()
-		spend_private_key_change_bytes := C.CBytes(spend_private_key_change_buf)
-		defer C.free(spend_private_key_change_bytes)
-		spend_private_key_change := &C.McBuffer{
-			buffer: (*C.uint8_t)(spend_private_key_change_bytes),
-			len:    C.size_t(len(spend_private_key_change_buf)),
+
+		spend_public_key_change_buf := account.HexToBytes(change.SpendPublicKey)
+		spend_public_key_change_bytes := C.CBytes(spend_public_key_change_buf)
+		defer C.free(spend_public_key_change_bytes)
+		spend_public_change := &C.McBuffer{
+			buffer: (*C.uint8_t)(spend_public_key_change_bytes),
+			len:    C.size_t(len(spend_public_key_change_buf)),
 		}
-		account_key := (*C.McAccountKey)(C.malloc(C.sizeof_McAccountKey))
-		defer C.free(unsafe.Pointer(account_key))
-		account_key.view_private_key = view_private_key_change
-		account_key.spend_private_key = spend_private_key_change
 
-		spendPrivateChange := change.SubaddressSpendPrivateKey(0)
-		viewPublicChange := account.PublicKey(change.SubaddressViewPrivateKey(spendPrivateChange))
+		report_url_change_str := C.CString(change.FogReportUrl)
+		defer C.free(unsafe.Pointer(report_url_change_str))
+		report_id_change_str := C.CString(change.FogReportId)
+		defer C.free(unsafe.Pointer(report_id_change_str))
+		sig_change_buf := account.HexToBytes(change.FogAuthoritySig)
+		sig_change_bytes := C.CBytes(sig_change_buf)
+		defer C.free(sig_change_bytes)
+		authority_sig_change := &C.McBuffer{
+			buffer: (*C.uint8_t)(sig_change_bytes),
+			len:    C.size_t(len(sig_change_buf)),
+		}
+		fog_info_change := (*C.McPublicAddressFogInfo)(C.malloc(C.sizeof_McPublicAddressFogInfo))
+		defer C.free(unsafe.Pointer(fog_info_change))
+		fog_info_change.report_url = (*C.char)(report_url_change_str)
+		fog_info_change.report_id = (*C.char)(report_id_change_str)
+		fog_info_change.authority_sig = authority_sig_change
+		change_address := (*C.McPublicAddress)(C.malloc(C.sizeof_McPublicAddress))
+		defer C.free(unsafe.Pointer(change_address))
+		change_address.view_public_key = view_public_change
+		change_address.spend_public_key = spend_public_change
+		change_address.fog_info = fog_info_change
 
-		secretChange := createSharedSecret(viewPublicChange, changeRandom)
+		viewPublicKeyChange := hexToPoint(change.ViewPublicKey)
+		secretChange := createSharedSecret(viewPublicKeyChange, changeRandom)
 		secret_change_buf := secretChange.Bytes()
 		secret_change_bytes := C.CBytes(secret_change_buf)
 		defer C.free(secret_change_bytes)
-		out_tx_out_shared_secret_change := &C.McMutableBuffer{
+		change_tx_out_shared_secret := &C.McMutableBuffer{
 			buffer: (*C.uint8_t)(secret_change_bytes),
 			len:    C.size_t(len(secret_change_buf)),
 		}
-
 		confirmation_change_buf := ConfirmationNumberFromSecret(secretChange)
-		confirmation_change_key := C.CBytes(confirmation_change_buf)
-		defer C.free(confirmation_change_key)
-		out_tx_out_confirmation_number_change := &C.McMutableBuffer{
-			buffer: (*C.uint8_t)(confirmation_change_key),
+		confirmation_change_bytes := C.CBytes(confirmation_change_buf)
+		defer C.free(confirmation_change_bytes)
+		change_tx_out_confirmation_number := &C.McMutableBuffer{
+			buffer: (*C.uint8_t)(confirmation_change_bytes),
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		_, err = C.mc_transaction_builder_add_change_output(account_key, transaction_builder, C.uint64_t(changeAmount), rng_callback, out_tx_out_confirmation_number_change, out_tx_out_shared_secret_change, &out_error)
+		_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(changeAmount), change_address, rng_callback, change_tx_out_confirmation_number, change_tx_out_shared_secret, &out_error)
 		if err != nil {
 			return nil, err
 		}
 		if out_error != nil {
-			err = fmt.Errorf("mc_transaction_builder_add_change_output failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
+			err = fmt.Errorf("mc_transaction_builder_add_output change failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 			C.mc_error_free(out_error)
 			return nil, err
 		}

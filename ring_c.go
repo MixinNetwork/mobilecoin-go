@@ -89,7 +89,7 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 }
 
 func MarshalTxOut(input *TxOut) *types.TxOut {
-	return &types.TxOut{
+	out := &types.TxOut{
 		MaskedAmount: &types.MaskedAmount{
 			Commitment: &types.CompressedRistretto{
 				Data: account.HexToBytes(input.Amount.Commitment),
@@ -103,13 +103,18 @@ func MarshalTxOut(input *TxOut) *types.TxOut {
 		PublicKey: &types.CompressedRistretto{
 			Data: hexToPoint(input.PublicKey).Bytes(),
 		},
-		EFogHint: &types.EncryptedFogHint{
-			Data: account.HexToBytes(input.EFogHint),
-		},
-		EMemo: &types.EncryptedMemo{
-			Data: account.HexToBytes(input.EMemo),
-		},
 	}
+	if input.EFogHint != "" {
+		out.EFogHint = &types.EncryptedFogHint{
+			Data: account.HexToBytes(input.EFogHint),
+		}
+	}
+	if input.EMemo != "" {
+		out.EMemo = &types.EncryptedMemo{
+			Data: account.HexToBytes(input.EMemo),
+		}
+	}
+	return out
 }
 
 func MarshalTxOutMembershipProof(proof *TxOutMembershipProof) *types.TxOutMembershipProof {

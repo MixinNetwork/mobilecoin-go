@@ -194,15 +194,12 @@ type Output struct {
 	ChangeAmount    uint64
 }
 
-func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, changePrivate string, tombstone uint64, tokenID, version uint) (*Output, error) {
+func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, tombstone uint64, tokenID, version uint, changeStr string) (*Output, error) {
 	recipient, err := account.DecodeB58Code(output)
 	if err != nil {
 		return nil, err
 	}
-	if len(changePrivate) != 128 {
-		return nil, errors.New("invalid change private")
-	}
-	change, err := account.NewAccountKey(changePrivate[:64], changePrivate[64:])
+	change, err := account.DecodeB58Code(changeStr)
 	if err != nil {
 		return nil, err
 	}
@@ -288,14 +285,13 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 
 	var hashChange string
 	if changeAmount > 0 {
-		changeAddress := change.PublicAddress(0)
-		hashChange = hex.EncodeToString(createTxPublicKey(&randomPrivateChange, account.HexToPoint(changeAddress.SpendPublicKey)).Bytes())
+		hashChange = hex.EncodeToString(createTxPublicKey(&randomPrivateChange, account.HexToPoint(change.SpendPublicKey)).Bytes())
 		outlayList[1] = &Outlay{
 			Value:    fmt.Sprint(changeAmount),
 			Receiver: recipient,
 		}
 		outlayIndexToTxOutIndex[1] = []int{1, 1}
-		viewChange := account.HexToPoint(changeAddress.ViewPublicKey)
+		viewChange := account.HexToPoint(change.ViewPublicKey)
 		secretChange := createSharedSecret(viewChange, &randomPrivateChange)
 		confirmationChange := ConfirmationNumberFromSecret(secretChange)
 		numsChange := make([]int, len(confirmationChange))
