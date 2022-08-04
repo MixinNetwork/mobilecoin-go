@@ -251,11 +251,7 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		return nil, err
 	}
 
-	var randomPrivateOut ristretto.Scalar
-	randomPrivateOut.Rand()
-	var randomPrivateChange ristretto.Scalar
-	randomPrivateChange.Rand()
-	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, &randomPrivateOut, &randomPrivateChange)
+	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +260,6 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 	if changeAmount > 0 {
 		size = 2
 	}
-	hashOutput := hex.EncodeToString(createTxPublicKey(&randomPrivateOut, account.HexToPoint(recipient.SpendPublicKey)).Bytes())
 	outlayList := make([]*Outlay, size)
 	outlayIndexToTxOutIndex := make([][]int, size)
 	outlayConfirmationNumbers := make([][]int, size)
@@ -274,33 +269,25 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		Receiver: recipient,
 	}
 	outlayIndexToTxOutIndex[0] = []int{0, 0}
-	viewOut := account.HexToPoint(recipient.ViewPublicKey)
-	secretOut := createSharedSecret(viewOut, &randomPrivateOut)
-	confirmationOut := ConfirmationNumberFromSecret(secretOut)
-	numsOut := make([]int, len(confirmationOut))
-	for i, b := range confirmationOut {
+	numsOut := make([]int, len(txC.ConfirmationOut))
+	for i, b := range txC.ConfirmationOut {
 		numsOut[i] = int(b)
 	}
 	outlayConfirmationNumbers[0] = numsOut
 
-	var hashChange string
 	if changeAmount > 0 {
-		hashChange = hex.EncodeToString(createTxPublicKey(&randomPrivateChange, account.HexToPoint(change.SpendPublicKey)).Bytes())
 		outlayList[1] = &Outlay{
 			Value:    fmt.Sprint(changeAmount),
 			Receiver: recipient,
 		}
 		outlayIndexToTxOutIndex[1] = []int{1, 1}
-		viewChange := account.HexToPoint(change.ViewPublicKey)
-		secretChange := createSharedSecret(viewChange, &randomPrivateChange)
-		confirmationChange := ConfirmationNumberFromSecret(secretChange)
-		numsChange := make([]int, len(confirmationChange))
-		for i, b := range confirmationChange {
+		numsChange := make([]int, len(txC.ConfirmationChange))
+		for i, b := range txC.ConfirmationChange {
 			numsChange[i] = int(b)
 		}
 		outlayConfirmationNumbers[1] = numsChange
 	}
-	tx := UnmarshalTx(txC)
+	tx := UnmarshalTx(txC.Tx)
 
 	txProposal := TxProposal{
 		InputList:                 unspentList,
@@ -311,24 +298,18 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		OutlayConfirmationNumbers: outlayConfirmationNumbers,
 	}
 
-	txx := map[string]*TxProposal{
-		"tx_proposal": &txProposal,
-	}
-	ddd, _ := json.Marshal(txx)
-	log.Println(string(ddd))
-
 	script, err := json.Marshal(txProposal)
 	if err != nil {
 		return nil, err
 	}
 	return &Output{
-		TransactionHash: hashOutput,
-		RawTransaction:  hex.EncodeToString(randomPrivateOut.Bytes()) + ":" + hex.EncodeToString(script),
+		TransactionHash: hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
+		RawTransaction:  hex.EncodeToString(txC.ShareSecretOut) + ":" + hex.EncodeToString(script),
 		Fee:             fee,
 		OutputIndex:     0,
-		OutputHash:      hashOutput,
+		OutputHash:      hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
 		ChangeIndex:     0,
-		ChangeHash:      hashChange,
+		ChangeHash:      hex.EncodeToString(txC.TxOutChange.PublicKey.GetData()),
 		ChangeAmount:    changeAmount,
 	}, nil
 }
@@ -360,6 +341,8 @@ func UnmarshalPrefix(prefix *types.TxPrefix) *TxPrefix {
 	outs := make([]*TxOut, len(prefix.Outputs))
 	for i, out := range prefix.Outputs {
 		outs[i] = UnmarshalTxOut(out)
+		ddd, _ := json.Marshal(outs[i])
+		log.Println(i, string(ddd))
 	}
 
 	return &TxPrefix{

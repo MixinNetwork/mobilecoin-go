@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/bwesterb/go-ristretto"
 	account "github.com/jadeydi/mobilecoin-account"
 	"github.com/jadeydi/mobilecoin-account/types"
 	"google.golang.org/protobuf/proto"
@@ -20,8 +19,18 @@ import (
 // #include "libmobilecoin.h"
 import "C"
 
+type TxC struct {
+	Tx                 *types.Tx
+	TxOut              *types.TxOut
+	ShareSecretOut     []byte
+	ConfirmationOut    []byte
+	TxOutChange        *types.TxOut
+	ShareSecretChange  []byte
+	ConfirmationChange []byte
+}
+
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, outRandom, changeRandom *ristretto.Scalar) (*types.Tx, error) {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
 	var fog_resolver *C.McFogResolver
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
@@ -145,16 +154,14 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 	recipient_address.spend_public_key = spend_public
 	recipient_address.fog_info = fog_info
 
-	viewPublicKeyRecipient := hexToPoint(recipient.ViewPublicKey)
-	secretRecipient := createSharedSecret(viewPublicKeyRecipient, outRandom)
-	secret_recipient_buf := secretRecipient.Bytes()
+	secret_recipient_buf := make([]byte, 32)
 	secret_recipient_bytes := C.CBytes(secret_recipient_buf)
 	defer C.free(secret_recipient_bytes)
 	out_tx_out_shared_secret := &C.McMutableBuffer{
 		buffer: (*C.uint8_t)(secret_recipient_bytes),
 		len:    C.size_t(len(secret_recipient_buf)),
 	}
-	confirmation_recipient_buf := ConfirmationNumberFromSecret(secretRecipient)
+	confirmation_recipient_buf := make([]byte, 32)
 	confirmation_recipient_bytes := C.CBytes(confirmation_recipient_buf)
 	defer C.free(confirmation_recipient_bytes)
 	out_tx_out_confirmation_number := &C.McMutableBuffer{
@@ -164,7 +171,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 
 	var rng_callback *C.McRngCallback
 	var out_error *C.McError
-	_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
+	mcDataOut, err := C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(amount), recipient_address, rng_callback, out_tx_out_confirmation_number, out_tx_out_shared_secret, &out_error)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +180,31 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		C.mc_error_free(out_error)
 		return nil, err
 	}
+	secret_recipient_buf = C.GoBytes(unsafe.Pointer(out_tx_out_shared_secret.buffer), C.int(len(secret_recipient_buf)))
+	confirmation_recipient_buf = C.GoBytes(unsafe.Pointer(out_tx_out_confirmation_number.buffer), C.int(len(confirmation_recipient_buf)))
+
+	defer C.mc_data_free(mcDataOut)
+	var tx_out_size_bytes *C.McMutableBuffer
+	tx_out_size := C.mc_data_get_bytes(mcDataOut, tx_out_size_bytes)
+
+	tx_out_data_buf := make([]byte, int(tx_out_size))
+	tx_out_data_bytes := C.CBytes(tx_out_data_buf)
+	defer C.free(tx_out_data_bytes)
+	tx_out_data := &C.McMutableBuffer{
+		buffer: (*C.uint8_t)(tx_out_data_bytes),
+		len:    C.size_t(len(tx_out_data_buf)),
+	}
+	tx_out_size = C.mc_data_get_bytes(mcDataOut, tx_out_data)
+	txOut := &types.TxOut{}
+	err = proto.Unmarshal(C.GoBytes(tx_out_data_bytes, C.int(tx_out_size)), txOut)
+	if err != nil {
+		return nil, err
+	}
+
 	// mc_transaction_builder_add_output for change
+	secret_change_buf := make([]byte, 32)
+	confirmation_change_buf := make([]byte, 32)
+	txOutChange := &types.TxOut{}
 	if changeAmount > 0 {
 		view_public_key_change_buf := account.HexToBytes(change.ViewPublicKey)
 		view_public_key_change_bytes := C.CBytes(view_public_key_change_buf)
@@ -213,16 +244,12 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		change_address.spend_public_key = spend_public_change
 		change_address.fog_info = fog_info_change
 
-		viewPublicKeyChange := hexToPoint(change.ViewPublicKey)
-		secretChange := createSharedSecret(viewPublicKeyChange, changeRandom)
-		secret_change_buf := secretChange.Bytes()
 		secret_change_bytes := C.CBytes(secret_change_buf)
 		defer C.free(secret_change_bytes)
 		change_tx_out_shared_secret := &C.McMutableBuffer{
 			buffer: (*C.uint8_t)(secret_change_bytes),
 			len:    C.size_t(len(secret_change_buf)),
 		}
-		confirmation_change_buf := ConfirmationNumberFromSecret(secretChange)
 		confirmation_change_bytes := C.CBytes(confirmation_change_buf)
 		defer C.free(confirmation_change_bytes)
 		change_tx_out_confirmation_number := &C.McMutableBuffer{
@@ -230,13 +257,32 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 			len:    C.size_t(len(confirmation_change_buf)),
 		}
 
-		_, err = C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(changeAmount), change_address, rng_callback, change_tx_out_confirmation_number, change_tx_out_shared_secret, &out_error)
+		mcDataChange, err := C.mc_transaction_builder_add_output(transaction_builder, C.uint64_t(changeAmount), change_address, rng_callback, change_tx_out_confirmation_number, change_tx_out_shared_secret, &out_error)
 		if err != nil {
 			return nil, err
 		}
 		if out_error != nil {
 			err = fmt.Errorf("mc_transaction_builder_add_output change failed: [%d] %s", out_error.error_code, C.GoString(out_error.error_description))
 			C.mc_error_free(out_error)
+			return nil, err
+		}
+		secret_change_buf = C.GoBytes(unsafe.Pointer(change_tx_out_shared_secret.buffer), C.int(len(secret_change_buf)))
+		confirmation_change_buf = C.GoBytes(unsafe.Pointer(change_tx_out_confirmation_number.buffer), C.int(len(confirmation_change_buf)))
+
+		defer C.mc_data_free(mcDataChange)
+		var tx_out_change_size_bytes *C.McMutableBuffer
+		data_size := C.mc_data_get_bytes(mcDataChange, tx_out_change_size_bytes)
+
+		tx_out_change_data_buf := make([]byte, int(data_size))
+		tx_out_change_data_bytes := C.CBytes(tx_out_change_data_buf)
+		defer C.free(tx_out_change_data_bytes)
+		tx_out_change_data := &C.McMutableBuffer{
+			buffer: (*C.uint8_t)(tx_out_change_data_bytes),
+			len:    C.size_t(len(tx_out_change_data_buf)),
+		}
+		data_size = C.mc_data_get_bytes(mcDataChange, tx_out_change_data)
+		err = proto.Unmarshal(C.GoBytes(tx_out_change_data_bytes, C.int(data_size)), txOutChange)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -267,5 +313,13 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 	if err != nil {
 		return nil, err
 	}
-	return tx, nil
+	return &TxC{
+		Tx:                 tx,
+		TxOut:              txOut,
+		ShareSecretOut:     secret_recipient_buf,
+		ConfirmationOut:    confirmation_recipient_buf,
+		TxOutChange:        txOutChange,
+		ShareSecretChange:  secret_change_buf,
+		ConfirmationChange: confirmation_change_buf,
+	}, nil
 }
