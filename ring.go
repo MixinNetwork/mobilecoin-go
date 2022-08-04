@@ -25,6 +25,10 @@ type InputC struct {
 
 // mc_transaction_builder_ring_add_element
 func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
+	if len(proofs.Ring) == 0 || len(proofs.Ring) != len(proofs.Rings) {
+		return nil, fmt.Errorf("Invalid proofs ring len %d, rings len %d", len(proofs.Rings), len(proofs.Ring))
+	}
+
 	inputSet := make(map[string]*UTXO)
 	for _, utxo := range utxos {
 		if len(utxo.ScriptPubKey) < 8 {
@@ -43,9 +47,6 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 	}
 
 	var inputCs []*InputC
-	if len(proofs.Ring) == 0 || len(proofs.Ring) != len(proofs.Rings) {
-		return nil, fmt.Errorf("Invalid proofs ring len %d, rings len %d", len(proofs.Rings), len(proofs.Ring))
-	}
 	for i, itemi := range proofs.Ring {
 		index := 0
 		ring := proofs.Rings[i]
@@ -73,13 +74,13 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 		if inputSet[itemi.TxOut.PublicKey] == nil {
 			return nil, fmt.Errorf("UTXO did not find")
 		}
-		source := inputSet[itemi.TxOut.PublicKey].PrivateKey
-		acc, err := account.NewAccountKey(source[:64], source[64:])
+		utxo := inputSet[itemi.TxOut.PublicKey]
+		acc, err := account.NewAccountKey(utxo.PrivateKey[:64], utxo.PrivateKey[64:])
 		if err != nil {
 			return nil, err
 		}
 		inputCs = append(inputCs, &InputC{
-			ViewPrivate:            hexToScalar(source[:64]),
+			ViewPrivate:            account.HexToScalar(utxo.PrivateKey[:64]),
 			SubAddressSpendPrivate: acc.SubaddressSpendPrivateKey(0),
 			RealIndex:              index,
 			TxOutWithProofCs:       txOutWithProofCs,
@@ -98,10 +99,10 @@ func MarshalTxOut(input *TxOut) *types.TxOut {
 			MaskedTokenId: account.HexToBytes(input.Amount.MaskedTokenID),
 		},
 		TargetKey: &types.CompressedRistretto{
-			Data: hexToPoint(input.TargetKey).Bytes(),
+			Data: account.HexToPoint(input.TargetKey).Bytes(),
 		},
 		PublicKey: &types.CompressedRistretto{
-			Data: hexToPoint(input.PublicKey).Bytes(),
+			Data: account.HexToPoint(input.PublicKey).Bytes(),
 		},
 	}
 	if input.EFogHint != "" {
