@@ -186,6 +186,7 @@ func (tb *TransactionBuilder) Build() (*Tx, error) {
 type Output struct {
 	TransactionHash string
 	RawTransaction  string
+	SharedSecret    string
 	Fee             uint64
 	OutputIndex     int64
 	OutputHash      string
@@ -304,7 +305,8 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 	}
 	return &Output{
 		TransactionHash: hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
-		RawTransaction:  hex.EncodeToString(txC.ShareSecretOut) + ":" + hex.EncodeToString(script),
+		RawTransaction:  hex.EncodeToString(script),
+		SharedSecret:    hex.EncodeToString(txC.ShareSecretOut),
 		Fee:             fee,
 		OutputIndex:     0,
 		OutputHash:      hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
