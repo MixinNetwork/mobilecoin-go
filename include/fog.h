@@ -3,7 +3,6 @@
 #ifndef FOG_H_
 #define FOG_H_
 
-#include "attest.h"
 #include "common.h"
 #include "keys.h"
 
