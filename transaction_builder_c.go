@@ -20,7 +20,7 @@ import (
 import "C"
 
 type TxC struct {
-	Tx                 *types.Tx
+	Tx                 []byte
 	TxOut              *types.TxOut
 	ShareSecretOut     []byte
 	ConfirmationOut    []byte
@@ -308,13 +308,8 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		len:    C.size_t(len(out_data_buf)),
 	}
 	data_size = C.mc_data_get_bytes(mcData, out_data)
-	tx := &types.Tx{}
-	err = proto.Unmarshal(C.GoBytes(out_data_bytes, C.int(data_size)), tx)
-	if err != nil {
-		return nil, err
-	}
 	return &TxC{
-		Tx:                 tx,
+		Tx:                 C.GoBytes(out_data_bytes, C.int(data_size)),
 		TxOut:              txOut,
 		ShareSecretOut:     secret_recipient_buf,
 		ConfirmationOut:    confirmation_recipient_buf,

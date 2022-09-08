@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -40,35 +39,9 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		return nil, err
 	}
 
-	var totalAmount uint64 = 0
-	unspentList := make([]*UnspentTxOut, len(inputs))
-	for i, input := range inputs {
+	var totalAmount uint64
+	for _, input := range inputs {
 		totalAmount += input.Amount
-
-		data, err := hex.DecodeString(input.ScriptPubKey)
-		if err != nil {
-			return nil, err
-		}
-		var txOut TxOut
-		err = json.Unmarshal(data, &txOut)
-		if err != nil {
-			return nil, err
-		}
-
-		onetimePrivateKey, err := RecoverOnetimePrivateKey(txOut.PublicKey, input.PrivateKey)
-		if err != nil {
-			return nil, err
-		}
-		image := hex.EncodeToString(KeyImageFromPrivate(onetimePrivateKey).Bytes())
-		unspentList[i] = &UnspentTxOut{
-			TxOut:                   &txOut,
-			SubaddressIndex:         0,
-			KeyImage:                image,
-			Value:                   fmt.Sprint(input.Amount),
-			AttemptedSpendHeight:    0,
-			AttemptedSpendTombstone: 0,
-			MonitorId:               "",
-		}
 	}
 
 	changeAmount := totalAmount - amount - fee
@@ -92,55 +65,9 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		return nil, err
 	}
 
-	size := 1
-	if changeAmount > 0 {
-		size = 2
-	}
-	outlayList := make([]*Outlay, size)
-	outlayIndexToTxOutIndex := make([][]int, size)
-	outlayConfirmationNumbers := make([][]int, size)
-
-	outlayList[0] = &Outlay{
-		Value:    fmt.Sprint(amount),
-		Receiver: recipient,
-	}
-	outlayIndexToTxOutIndex[0] = []int{0, 0}
-	numsOut := make([]int, len(txC.ConfirmationOut))
-	for i, b := range txC.ConfirmationOut {
-		numsOut[i] = int(b)
-	}
-	outlayConfirmationNumbers[0] = numsOut
-
-	if size == 2 {
-		outlayList[1] = &Outlay{
-			Value:    fmt.Sprint(changeAmount),
-			Receiver: recipient,
-		}
-		outlayIndexToTxOutIndex[1] = []int{1, 1}
-		numsChange := make([]int, len(txC.ConfirmationChange))
-		for i, b := range txC.ConfirmationChange {
-			numsChange[i] = int(b)
-		}
-		outlayConfirmationNumbers[1] = numsChange
-	}
-
-	tx := UnmarshalTx(txC.Tx)
-	txProposal := TxProposal{
-		InputList:                 unspentList,
-		OutlayList:                outlayList,
-		Tx:                        tx,
-		Fee:                       fee,
-		OutlayIndexToTxOutIndex:   outlayIndexToTxOutIndex,
-		OutlayConfirmationNumbers: outlayConfirmationNumbers,
-	}
-
-	script, err := json.Marshal(txProposal)
-	if err != nil {
-		return nil, err
-	}
 	return &Output{
 		TransactionHash: hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
-		RawTransaction:  hex.EncodeToString(script),
+		RawTransaction:  hex.EncodeToString(txC.Tx),
 		SharedSecret:    hex.EncodeToString(txC.ShareSecretOut),
 		Fee:             fee,
 		OutputIndex:     0,
