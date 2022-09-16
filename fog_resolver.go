@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/go-schnorrkel"
 	account "github.com/jadeydi/mobilecoin-account"
-	"github.com/jadeydi/mobilecoin-account/block"
+	"github.com/jadeydi/mobilecoin-account/types"
 )
 
 const (
@@ -24,7 +24,7 @@ type IngestReportVerifier struct {
 }
 
 type FogResolver struct {
-	Responses map[string]*block.ReportResponse
+	Responses map[string]*types.ReportResponse
 	Verifier  *IngestReportVerifier
 }
 
@@ -52,9 +52,6 @@ func verifyAuthority(recipient *account.PublicAddress, certs []*x509.Certificate
 	var view32 [32]byte
 	copy(view32[:], view)
 	public := schnorrkel.NewPublicKey(view32)
-	if err != nil {
-		return false, err
-	}
 	sigbuf, err := hex.DecodeString(sig)
 	if err != nil {
 		return false, err
@@ -83,7 +80,7 @@ func mcPublicKey(cert *x509.Certificate) (ed25519.PublicKey, error) {
 }
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/sig/src/public_address.rs#L22
-func verifyFogSig(recipient *account.PublicAddress, responses *block.ReportResponse) error {
+func verifyFogSig(recipient *account.PublicAddress, responses *types.ReportResponse) error {
 	var certs []*x509.Certificate
 	for _, buf := range responses.GetChain() {
 		cert, err := x509.ParseCertificate(buf)
@@ -135,5 +132,5 @@ func (resolver *FogResolver) GetFogPubkey(recipient *account.PublicAddress) erro
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/2f90154a445c769594dfad881463a2d4a003d7d6/fog/report/validation/src/ingest_report.rs#L23
 // validate_ingest_ias_report
-func (resolver *FogResolver) ValidateIngestIasReport(report *block.VerificationReport) {
+func (resolver *FogResolver) ValidateIngestIasReport(report *types.VerificationReport) {
 }

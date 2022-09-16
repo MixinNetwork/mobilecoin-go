@@ -19,19 +19,12 @@ const (
 	TXOUT_CONFIRMATION_NUMBER_DOMAIN_TAG = "mc_tx_out_confirmation_number"
 	MILLIMOB_TO_PICOMOB                  = 1_000_000_000
 	PICOMOB                              = 1_000_000_000_000 // precision = 12
+	MOB_MINIMUM_FEE                      = 400_000_000
 
-	MAX_TOMBSTONE_BLOCKS = 100
+	MAX_TOMBSTONE_BLOCKS = 20160
 	MAX_INPUTS           = 16
 	RING_SIZE            = 11 // Each input ring must contain this many elements.
 )
-
-type UTXO struct {
-	TransactionHash string
-	Index           uint32
-	Amount          uint64
-	PrivateKey      string
-	ScriptPubKey    string
-}
 
 type InputCredential struct {
 	Ring                []*TxOut
@@ -102,7 +95,7 @@ func NewInputCredential(utxo *UTXO, proofSet map[string]*TxOutMembershipProof, t
 		MembershipProofs:    proofs,
 		RealIndex:           realIndex,
 		OnetimePrivateKey:   onetimePrivateKey,
-		ViewPrivateKey:      account.ViewPrivateKeyFromHex(viewPrivate),
+		ViewPrivateKey:      account.HexToScalar(viewPrivate),
 		RealOutputPublicKey: realOutputPublicKey,
 	}, nil
 }

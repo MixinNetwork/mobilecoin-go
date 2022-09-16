@@ -1,11 +1,11 @@
 package api
 
 import (
-	"github.com/jadeydi/mobilecoin-account/block"
 	"github.com/gtank/merlin"
+	"github.com/jadeydi/mobilecoin-account/types"
 )
 
-func HashOfReport(reports []*block.Report) []byte {
+func HashOfReport(reports []*types.Report) []byte {
 	t := merlin.NewTranscript("digestible")
 	appendReports(reports, t)
 	return t.ExtractBytes([]byte("digest32"), 32)
@@ -16,7 +16,7 @@ func appendFogReportId(body string, t *merlin.Transcript) {
 	appendBytes([]byte("str"), []byte(body), t)
 }
 
-func appendSig(sig *block.VerificationSignature, t *merlin.Transcript) {
+func appendSig(sig *types.VerificationSignature, t *merlin.Transcript) {
 	appendBytes([]byte("sig"), []byte(AGGREGATE), t)
 	appendBytes([]byte("name"), []byte("VerificationSignature"), t)
 	appendBytes([]byte("0"), []byte("prim"), t)
@@ -39,7 +39,7 @@ func appendHttpBody(body string, t *merlin.Transcript) {
 	appendBytes([]byte("str"), []byte(body), t)
 }
 
-func appendVerificationReport(report *block.VerificationReport, t *merlin.Transcript) {
+func appendVerificationReport(report *types.VerificationReport, t *merlin.Transcript) {
 	appendBytes([]byte("report"), []byte(AGGREGATE), t)
 	appendBytes([]byte("name"), []byte("VerificationReport"), t)
 	appendSig(report.GetSig(), t)
@@ -56,7 +56,7 @@ func appendPubkeyExpiry(expiry uint64, t *merlin.Transcript) {
 	appendInt64("uint", expiry, t)
 }
 
-func appendReport(report *block.Report, t *merlin.Transcript) {
+func appendReport(report *types.Report, t *merlin.Transcript) {
 	appendBytes([]byte(""), []byte(AGGREGATE), t)
 	appendBytes([]byte("name"), []byte("Report"), t)
 	appendFogReportId(report.FogReportId, t)
@@ -66,7 +66,7 @@ func appendReport(report *block.Report, t *merlin.Transcript) {
 	appendBytes([]byte("name"), []byte("Report"), t)
 }
 
-func appendReports(reports []*block.Report, t *merlin.Transcript) {
+func appendReports(reports []*types.Report, t *merlin.Transcript) {
 	appendBytes([]byte("Fog ingest reports"), []byte(SEQUENCE), t)
 	appendInt64("len", uint64(len(reports)), t)
 	for _, report := range reports {

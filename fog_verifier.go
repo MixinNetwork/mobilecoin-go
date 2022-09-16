@@ -8,7 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 
-	"github.com/jadeydi/mobilecoin-account/block"
+	"github.com/jadeydi/mobilecoin-account/types"
 )
 
 type MrSignerVerifier struct {
@@ -90,7 +90,7 @@ type VerificationReportData struct {
 
 // https://github.com/mobilecoinfoundation/mobilecoin/blob/6abc426b2ad7a1d91e06c7ddab774f4055fb9df9/attest/core/src/ias/verifier.rs#L385
 // verify
-func (verifier *IasReportVerifier) Verify(report *block.VerificationReport) (*VerificationReportData, error) {
+func (verifier *IasReportVerifier) Verify(report *types.VerificationReport) (*VerificationReportData, error) {
 	if len(report.Chain) == 0 {
 		return nil, errors.New("No Chain Error")
 	}
