@@ -9,6 +9,23 @@ import (
 	"github.com/jadeydi/mobilecoin-account/types"
 )
 
+const (
+	BULLETPROOF_DOMAIN_TAG               = "mc_bulletproof_transcript"
+	AMOUNT_VALUE_DOMAIN_TAG              = "mc_amount_value"
+	AMOUNT_BLINDING_DOMAIN_TAG           = "mc_amount_blinding"
+	HASH_TO_POINT_DOMAIN_TAG             = "mc_onetime_key_hash_to_point"
+	HASH_TO_SCALAR_DOMAIN_TAG            = "mc_onetime_key_hash_to_scalar"
+	RING_MLSAG_CHALLENGE_DOMAIN_TAG      = "mc_ring_mlsag_challenge"
+	TXOUT_CONFIRMATION_NUMBER_DOMAIN_TAG = "mc_tx_out_confirmation_number"
+	MILLIMOB_TO_PICOMOB                  = 1_000_000_000
+	PICOMOB                              = 1_000_000_000_000 // precision = 12
+	MOB_MINIMUM_FEE                      = 400_000_000
+
+	MAX_TOMBSTONE_BLOCKS = 20160
+	MAX_INPUTS           = 16
+	RING_SIZE            = 11 // Each input ring must contain this many elements.
+)
+
 type UTXO struct {
 	TransactionHash string
 	Index           uint32
