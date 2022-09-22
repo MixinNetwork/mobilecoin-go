@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -32,6 +33,82 @@ type TxC struct {
 // mc_transaction_builder_create
 func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
 	var fog_resolver *C.McFogResolver
+
+	if recipient != nil && recipient.FogReportUrl != "" {
+		signature, err := ParseSignature()
+		if err != nil {
+			return nil, err
+		}
+
+		enclave := signature.MRENCLAVE()
+		h := hex.EncodeToString(enclave[:])
+		h = "3d6e528ee0574ae3299915ea608b71ddd17cbe855d4f5e1c46df9b0d22b04cdb"
+		fog_url_to_mr_enclave_hex := map[string]string{
+			"fog://fog.prod.mobilecoinww.com":            h,
+			"fog://fog-rpt-prd.namda.net":                h,
+			"fog://service.fog.mob.production.namda.net": h,
+			"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
+		}
+
+		mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[string(recipient.FogReportUrl)]
+		if !ok {
+			return nil, errors.New("No enclave hex for Address' fog url")
+		}
+
+		// Construct a verifier object that is used to verify the report's attestation
+		mr_enclave_bytes, err := hex.DecodeString(mr_enclave_hex)
+		if err != nil {
+			return nil, err
+		}
+
+		c_mr_enclave_bytes := C.CBytes(mr_enclave_bytes)
+		defer C.free(c_mr_enclave_bytes)
+
+		c_mr_enclave := C.McBuffer{
+			buffer: (*C.uchar)(c_mr_enclave_bytes),
+			len:    C.ulong(len(mr_enclave_bytes)),
+		}
+
+		mr_enclave_verifier, err := C.mc_mr_enclave_verifier_create(&c_mr_enclave)
+		if err != nil {
+			return nil, err
+		}
+		if mr_enclave_verifier == nil {
+			return nil, errors.New("mc_mr_enclave_verifier_create failed")
+		}
+		defer C.mc_mr_enclave_verifier_free(mr_enclave_verifier)
+
+		c_advisory_id := C.CString("INTEL-SA-00334")
+		defer C.free(unsafe.Pointer(c_advisory_id))
+		ret, err := C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id)
+		if err != nil {
+			return nil, err
+		}
+		if ret == false {
+			return nil, errors.New("mc_mr_enclave_verifier_allow_hardening_advisory failed")
+		}
+
+		mc_verifier, err := C.mc_verifier_create()
+		if err != nil {
+			return nil, err
+		}
+		defer C.mc_verifier_free(mc_verifier)
+
+		ret, err = C.mc_verifier_add_mr_enclave(mc_verifier, mr_enclave_verifier)
+		if err != nil {
+			return nil, err
+		}
+		if ret == false {
+			return nil, errors.New("mc_verifier_add_mr_enclave failed")
+		}
+
+		fog_resolver, err = C.mc_fog_resolver_create(mc_verifier)
+		if err != nil {
+			return nil, err
+		}
+		defer C.mc_fog_resolver_free(fog_resolver)
+	}
+
 	memo_builder, err := C.mc_memo_builder_default_create()
 	if err != nil {
 		return nil, err
