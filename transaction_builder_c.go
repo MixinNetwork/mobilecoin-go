@@ -78,7 +78,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		}
 		defer C.mc_mr_enclave_verifier_free(mr_enclave_verifier)
 
-		c_advisory_id := C.CString("INTEL-SA-00334")
+		c_advisory_id := C.CString("INTEL-SA-00615")
 		defer C.free(unsafe.Pointer(c_advisory_id))
 		ret, err := C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id)
 		if err != nil {
