@@ -42,7 +42,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 
 		enclave := signature.MRENCLAVE()
 		h := hex.EncodeToString(enclave[:])
-		h = "3d6e528ee0574ae3299915ea608b71ddd17cbe855d4f5e1c46df9b0d22b04cdb"
+		h = "3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021"
 		fog_url_to_mr_enclave_hex := map[string]string{
 			"fog://fog.prod.mobilecoinww.com":            h,
 			"fog://fog-rpt-prd.namda.net":                h,
@@ -78,7 +78,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		}
 		defer C.mc_mr_enclave_verifier_free(mr_enclave_verifier)
 
-		c_advisory_id := C.CString("INTEL-SA-00615")
+		c_advisory_id := C.CString("INTEL-SA-00334")
 		defer C.free(unsafe.Pointer(c_advisory_id))
 		ret, err := C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id)
 		if err != nil {
