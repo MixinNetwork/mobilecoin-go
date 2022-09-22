@@ -107,6 +107,49 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 			return nil, err
 		}
 		defer C.mc_fog_resolver_free(fog_resolver)
+
+		report, err := GetFogReportResponse(recipient.FogReportUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert the report back to protobuf bytes so that it could be handed to libmobilecoin
+		reportBytes, err := proto.Marshal(report)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add the report bytes to the resolver
+		c_report_buf_bytes := C.CBytes(reportBytes)
+		defer C.free(c_report_buf_bytes)
+
+		report_buf := C.McBuffer{
+			buffer: (*C.uchar)(c_report_buf_bytes),
+			len:    C.ulong(len(reportBytes)),
+		}
+
+		c_address := C.CString(recipient.FogReportUrl)
+		defer C.free(unsafe.Pointer(c_address))
+
+		var mc_error *C.McError
+		ret, err = C.mc_fog_resolver_add_report_response(
+			fog_resolver,
+			c_address,
+			&report_buf,
+			&mc_error,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if ret == false {
+			if mc_error == nil {
+				return nil, errors.New("mc_fog_resolver_add_report_response failed")
+			} else {
+				err = fmt.Errorf("mc_fog_resolver_add_report_response failed: [%d] %s", mc_error.error_code, C.GoString(mc_error.error_description))
+				C.mc_error_free(mc_error)
+				return nil, err
+			}
+		}
 	}
 
 	memo_builder, err := C.mc_memo_builder_default_create()
