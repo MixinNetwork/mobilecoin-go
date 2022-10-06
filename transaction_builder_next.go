@@ -20,6 +20,7 @@ const (
 	MILLIMOB_TO_PICOMOB                  = 1_000_000_000
 	PICOMOB                              = 1_000_000_000_000 // precision = 12
 	MOB_MINIMUM_FEE                      = 400_000_000
+	MINIMUM_EUSD                         = 1_000_000
 
 	MAX_TOMBSTONE_BLOCKS = 20160
 	MAX_INPUTS           = 16
