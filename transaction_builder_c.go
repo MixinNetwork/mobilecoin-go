@@ -42,6 +42,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 
 		enclave := signature.MRENCLAVE()
 		h := hex.EncodeToString(enclave[:])
+		// E.g 2.0.1 or 2.3.4 are all still using the same enclaves. 3.0 will have a new MRENCLAVE.
 		h = "3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021"
 		fog_url_to_mr_enclave_hex := map[string]string{
 			"fog://fog.prod.mobilecoinww.com":            h,
