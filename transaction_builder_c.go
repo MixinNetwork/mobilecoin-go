@@ -34,7 +34,7 @@ type TxC struct {
 func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
 
 	myenclaves := []string{
-		"d901b5c4960f49871a848fd157c7c0b03351253d65bb839698ddd5df138ad7b6", // v3.0.0
+		"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
 		"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
 	}
 	for _, enclave := range myenclaves {
