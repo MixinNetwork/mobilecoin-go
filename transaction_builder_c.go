@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"unsafe"
 
 	account "github.com/jadeydi/mobilecoin-account"
@@ -30,8 +31,26 @@ type TxC struct {
 	ConfirmationChange []byte
 }
 
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+
+	myenclaves := []string{
+		"d901b5c4960f49871a848fd157c7c0b03351253d65bb839698ddd5df138ad7b6", // v3.0.0
+		"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
+	}
+	for _, enclave := range myenclaves {
+		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
+		if err != nil {
+			if strings.Contains(err.Error(), "Attestation verification failed") {
+				continue
+			}
+			return txC, err
+		}
+	}
+	return nil, errors.New("invalid myenclaves")
+}
+
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, enclave string) (*TxC, error) {
+func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, enclave string) (*TxC, error) {
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
