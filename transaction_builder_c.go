@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"unsafe"
 
@@ -40,6 +41,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 	for _, enclave := range myenclaves {
 		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
 		if err != nil {
+			log.Printf("MCTransactionBuilderCreateCWithEnclave error %v \n", err)
 			if strings.Contains(err.Error(), "Attestation verification failed") {
 				continue
 			}
