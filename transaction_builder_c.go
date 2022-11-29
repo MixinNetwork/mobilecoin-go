@@ -31,23 +31,14 @@ type TxC struct {
 }
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, enclave string) (*TxC, error) {
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
-		signature, err := ParseSignature()
-		if err != nil {
-			return nil, err
-		}
-
-		enclave := signature.MRENCLAVE()
-		h := hex.EncodeToString(enclave[:])
-		// E.g 2.0.1 or 2.3.4 are all still using the same enclaves. 3.0 will have a new MRENCLAVE.
-		h = "3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021"
 		fog_url_to_mr_enclave_hex := map[string]string{
-			"fog://fog.prod.mobilecoinww.com":            h,
-			"fog://fog-rpt-prd.namda.net":                h,
-			"fog://service.fog.mob.production.namda.net": h,
+			"fog://fog.prod.mobilecoinww.com":            enclave,
+			"fog://fog-rpt-prd.namda.net":                enclave,
+			"fog://service.fog.mob.production.namda.net": enclave,
 			"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 		}
 
