@@ -43,8 +43,9 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 			if strings.Contains(err.Error(), "Attestation verification failed") {
 				continue
 			}
-			return txC, err
+			return nil, err
 		}
+		return txC, nil
 	}
 	return nil, errors.New("invalid myenclaves")
 }
