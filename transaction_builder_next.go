@@ -79,6 +79,9 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 	}
 
 	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Output{
 		TransactionHash: hex.EncodeToString(txC.TxOut.PublicKey.GetData()),
