@@ -3,7 +3,7 @@ package api
 import (
 	"strconv"
 
-	account "github.com/jadeydi/mobilecoin-account"
+	account "github.com/MixinNetwork/mobilecoin-account"
 )
 
 type MaskedValue uint64

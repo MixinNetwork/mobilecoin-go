@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unsafe"
 
-	account "github.com/jadeydi/mobilecoin-account"
-	"github.com/jadeydi/mobilecoin-account/types"
+	account "github.com/MixinNetwork/mobilecoin-account"
+	"github.com/MixinNetwork/mobilecoin-account/types"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/bwesterb/go-ristretto"
 	"github.com/dchest/blake2b"
-	account "github.com/jadeydi/mobilecoin-account"
+	account "github.com/MixinNetwork/mobilecoin-account"
 )
 
 func keyImage(private *ristretto.Scalar) *ristretto.Point {

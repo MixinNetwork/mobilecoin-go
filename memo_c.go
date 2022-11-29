@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	account "github.com/jadeydi/mobilecoin-account"
+	account "github.com/MixinNetwork/mobilecoin-account"
 )
 
 // #cgo CFLAGS: -I${SRCDIR}/include

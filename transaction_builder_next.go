@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	account "github.com/jadeydi/mobilecoin-account"
-	"github.com/jadeydi/mobilecoin-account/types"
+	account "github.com/MixinNetwork/mobilecoin-account"
+	"github.com/MixinNetwork/mobilecoin-account/types"
 )
 
 const (

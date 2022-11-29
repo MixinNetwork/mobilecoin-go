@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/jadeydi/mobilecoin-account/types"
+	"github.com/MixinNetwork/mobilecoin-account/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

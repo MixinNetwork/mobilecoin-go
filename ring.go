@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/bwesterb/go-ristretto"
-	account "github.com/jadeydi/mobilecoin-account"
-	"github.com/jadeydi/mobilecoin-account/types"
+	account "github.com/MixinNetwork/mobilecoin-account"
+	"github.com/MixinNetwork/mobilecoin-account/types"
 )
 
 type TxOutWithProofC struct {
