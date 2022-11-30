@@ -98,7 +98,17 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 			return nil, err
 		}
 		if ret == false {
-			return nil, errors.New("mc_mr_enclave_verifier_allow_hardening_advisory failed")
+			return nil, errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00334 failed")
+		}
+
+		c_advisory_id_00615 := C.CString("INTEL-SA-00615")
+		defer C.free(unsafe.Pointer(c_advisory_id_00615))
+		ret, err = C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id_00615)
+		if err != nil {
+			return nil, err
+		}
+		if ret == false {
+			return nil, errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00615 failed")
 		}
 
 		mc_verifier, err := C.mc_verifier_create()
