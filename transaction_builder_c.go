@@ -36,15 +36,17 @@ var myenclaves = []string{
 }
 
 func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+	var errors string
 	for _, enclave := range myenclaves {
 		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
 		if err != nil {
-			fmt.Printf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
+			errors += fmt.Sprintf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
 			continue
 		}
 		return txC, nil
 	}
-	return nil, errors.New("invalid myenclaves")
+	destination, _ := recipient.B58Code()
+	return nil, fmt.Errorf("recipient %s, errors %s", destination, errors)
 }
 
 // mc_transaction_builder_create
