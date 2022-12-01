@@ -1,19 +1,16 @@
 package api
 
 import (
-	"encoding/hex"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGog(t *testing.T) {
+func TestFog(t *testing.T) {
 	assert := assert.New(t)
-
-	signature, err := ParseSignature()
+	err := ValidateAddress("2v47hNBvaA8dZC7ZMmSP3GpLMgRzN6YwWL1nY39chuDLjGokW3Bwmq3NtWoufizk21mYRJfJmyM12RCdgbsv6CAqXgfBKaA2J6boeRAcVB2")
 	assert.Nil(err)
 
-	enclave := signature.MRENCLAVE()
-	log.Println(hex.EncodeToString(enclave[:]))
+	err = ValidateAddress("3j6VPEb37ZLHe6tYZpqTiVXnk5CrfQhELwhgGawXe1MH9tYRm2oty6FaWdiG6hKcn9qnqdCpxmzYNt1GRHprk7sAyfLJjoYvDHWD9f74K8ZijhkHvpAsE9Hko16EymgDgxedGYc6P31wMzuPxDhkrqnsvqQJ83vsCnTtgZWLix1qoYwJ9BukrbCMCfsN8CTyjFeY9HYRGUrf6u2RfJDU4yftuKz7LwECHw6HJYsJHMj7tP")
+	assert.Nil(err)
 }

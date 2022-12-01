@@ -32,12 +32,12 @@ type TxC struct {
 	ConfirmationChange []byte
 }
 
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+var myenclaves = []string{
+	"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
+	"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
+}
 
-	myenclaves := []string{
-		"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
-		"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
-	}
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
 	for _, enclave := range myenclaves {
 		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
 		if err != nil {

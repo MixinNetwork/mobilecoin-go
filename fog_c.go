@@ -22,24 +22,38 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func ValidateFogAddress() {
+func ValidateAddress(recipient string) error {
+	destination, err := account.DecodeB58Code(recipient)
+	if err != nil {
+		return err
+	}
+	if destination.FogReportUrl == "" {
+		return nil
+	}
+	for _, enclave := range myenclaves {
+		err = ValidateFogAddressWithEnclave(destination, enclave)
+		if err != nil {
+			fmt.Printf("ValidateFogAddressWithEnclave error: %v \n", err)
+			continue
+		}
+	}
+	return err
+}
+
+type FogFullyValidatedPubkey struct {
+	// Public key in Ristretto format
+	pubkey ristretto.Point
+
+	// The pubkey_expiry value is the latest block that fog-service promises
+	// that is valid to encrypt fog hints using this key for.
+	// The client should obey this limit by not setting tombstone block for a
+	// transaction larger than this limit if the fog pubkey is used.
+	pubkey_expiry uint64
 }
 
 func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave string) error {
-	// Convert recipient from the Go representation to protobuf bytes
-	protobufRecipient, err := PublicAddressToProtobuf(recipient)
-	if err != nil {
-		return err
-	}
-
-	recipientProtobufBytes, err := proto.Marshal(protobufRecipient)
-	if err != nil {
-		return err
-	}
-
 	// Used for returning errors from libmobilecoin
 	var mc_error *C.McError
-
 	// Connect to the fog report server and obtain a report
 	report, err := GetFogReportResponse(recipient.FogReportUrl)
 	if err != nil {
@@ -103,7 +117,7 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 		return err
 	}
 	if ret == false {
-		return errors.New("mc_mr_enclave_verifier_allow_hardening_advisory failed")
+		return errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00334 failed")
 	}
 
 	c_advisory_id_00615 := C.CString("INTEL-SA-00615")
@@ -176,61 +190,6 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 			C.mc_error_free(mc_error)
 			return err
 		}
-	}
-
-	// Perform the actual validation and key extraction
-	c_recipient_bytes := C.CBytes(recipientProtobufBytes)
-	defer C.free(c_recipient_bytes)
-
-	c_recipient_buf := C.McBuffer{
-		buffer: (*C.uchar)(c_recipient_bytes),
-		len:    (C.ulong)(len(recipientProtobufBytes)),
-	}
-	fully_validated_fog_pub_key, err := C.mc_fog_resolver_get_fog_pubkey_from_protobuf_public_address(
-		fog_resolver,
-		&c_recipient_buf,
-		&mc_error,
-	)
-	if err != nil {
-		return err
-	}
-	if fully_validated_fog_pub_key == nil {
-		if mc_error == nil {
-			return errors.New("get_fog_pubkey failed: no error returned?!")
-		} else {
-			err = fmt.Errorf("get_fog_pubkey failed: [%d] %s", mc_error.error_code, C.GoString(mc_error.error_description))
-			C.mc_error_free(mc_error)
-			return err
-		}
-	}
-	defer C.mc_fully_validated_fog_pubkey_free(fully_validated_fog_pub_key)
-
-	// Get the pubkey expiry
-	_, err = C.mc_fully_validated_fog_pubkey_get_pubkey_expiry(fully_validated_fog_pub_key)
-	if err != nil {
-		return err
-	}
-
-	// Get the pubkey
-	out_buf := C.malloc(32)
-	defer C.free(out_buf)
-
-	mutable_buf := (*C.McMutableBuffer)(C.malloc(C.sizeof_McMutableBuffer))
-	defer C.free(unsafe.Pointer(mutable_buf))
-	mutable_buf.buffer = (*C.uchar)(out_buf)
-	mutable_buf.len = 32
-
-	_, err = C.mc_fully_validated_fog_pubkey_get_pubkey(fully_validated_fog_pub_key, mutable_buf)
-	if err != nil {
-		return err
-	}
-	fog_pubkey_bytes := C.GoBytes(out_buf, 32)
-
-	// Convert pubkey bytes to ristretto Point
-	var fog_pubkey ristretto.Point
-	err = fog_pubkey.UnmarshalBinary(fog_pubkey_bytes)
-	if err != nil {
-		return err
 	}
 	return nil
 }
