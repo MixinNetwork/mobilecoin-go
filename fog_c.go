@@ -33,11 +33,12 @@ func ValidateAddress(recipient string) error {
 	for _, enclave := range myenclaves {
 		err = ValidateFogAddressWithEnclave(destination, enclave)
 		if err != nil {
-			fmt.Printf("ValidateFogAddressWithEnclave error: %v \n", err)
+			fmt.Printf("ValidateFogAddressWithEnclave recipient: %s enclave: %s error: %v \n", recipient, enclave, err)
 			continue
 		}
+		return nil
 	}
-	return err
+	return fmt.Errorf("invalid recipient %s", recipient)
 }
 
 type FogFullyValidatedPubkey struct {
