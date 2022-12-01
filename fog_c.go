@@ -175,6 +175,73 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 			return err
 		}
 	}
+
+	// Convert recipient from the Go representation to protobuf bytes
+	protobufRecipient, err := PublicAddressToProtobuf(recipient)
+	if err != nil {
+		return err
+	}
+
+	recipientProtobufBytes, err := proto.Marshal(protobufRecipient)
+	if err != nil {
+		return err
+	}
+
+	// Perform the actual validation and key extraction
+	c_recipient_bytes := C.CBytes(recipientProtobufBytes)
+	defer C.free(c_recipient_bytes)
+
+	c_recipient_buf := C.McBuffer{
+		buffer: (*C.uchar)(c_recipient_bytes),
+		len:    (C.ulong)(len(recipientProtobufBytes)),
+	}
+	fully_validated_fog_pub_key, err := C.mc_fog_resolver_get_fog_pubkey_from_protobuf_public_address(
+		fog_resolver,
+		&c_recipient_buf,
+		&mc_error,
+	)
+	if err != nil {
+		return err
+	}
+	if fully_validated_fog_pub_key == nil {
+		if mc_error == nil {
+			return errors.New("get_fog_pubkey failed: no error returned?!")
+		} else {
+			err = fmt.Errorf("get_fog_pubkey failed: [%d] %s", mc_error.error_code, C.GoString(mc_error.error_description))
+			C.mc_error_free(mc_error)
+			return err
+		}
+	}
+	defer C.mc_fully_validated_fog_pubkey_free(fully_validated_fog_pub_key)
+
+	// Get the pubkey expiry
+	_, err = C.mc_fully_validated_fog_pubkey_get_pubkey_expiry(fully_validated_fog_pub_key)
+	if err != nil {
+		return err
+	}
+
+	// Get the pubkey
+	out_buf := C.malloc(32)
+	defer C.free(out_buf)
+
+	mutable_buf := (*C.McMutableBuffer)(C.malloc(C.sizeof_McMutableBuffer))
+	defer C.free(unsafe.Pointer(mutable_buf))
+	mutable_buf.buffer = (*C.uchar)(out_buf)
+	mutable_buf.len = 32
+
+	_, err = C.mc_fully_validated_fog_pubkey_get_pubkey(fully_validated_fog_pub_key, mutable_buf)
+	if err != nil {
+		return err
+	}
+	fog_pubkey_bytes := C.GoBytes(out_buf, 32)
+
+	// Convert pubkey bytes to ristretto Point
+	var fog_pubkey ristretto.Point
+	err = fog_pubkey.UnmarshalBinary(fog_pubkey_bytes)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
