@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 	"unsafe"
 
 	account "github.com/MixinNetwork/mobilecoin-account"
@@ -54,21 +52,10 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
-		fog_url_to_mr_enclave_hex := fetchValidFogURL(enclave)
-
-		uri, err := url.Parse(recipient.FogReportUrl)
+		mr_enclave_hex, err := fetchValidFogEnclave(recipient.FogReportUrl, enclave)
 		if err != nil {
 			return nil, err
 		}
-		host := recipient.FogReportUrl
-		if uri.Port() != "" {
-			host = strings.ReplaceAll(host, ":"+uri.Port(), "")
-		}
-		mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[host]
-		if !ok {
-			return nil, errors.New("No enclave hex for Address' fog url")
-		}
-
 		// Construct a verifier object that is used to verify the report's attestation
 		mr_enclave_bytes, err := hex.DecodeString(mr_enclave_hex)
 		if err != nil {
