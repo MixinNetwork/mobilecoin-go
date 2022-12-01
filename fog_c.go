@@ -66,12 +66,7 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 		return err
 	}
 
-	fog_url_to_mr_enclave_hex := map[string]string{
-		"fog://fog.prod.mobilecoinww.com":            enclave,
-		"fog://service.fog.mob.production.namda.net": enclave,
-		"fog://fog-rpt-prd.namda.net":                enclave,
-		"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
-	}
+	fog_url_to_mr_enclave_hex := fetchValidFogURL(enclave)
 
 	uri, err := url.Parse(recipient.FogReportUrl)
 	if err != nil {
@@ -218,4 +213,13 @@ func PublicAddressToProtobuf(addr *account.PublicAddress) (*types.PublicAddress,
 	}
 
 	return protobufObject, nil
+}
+
+func fetchValidFogURL(enclave string) map[string]string {
+	return map[string]string{
+		"fog://fog.prod.mobilecoinww.com":            enclave,
+		"fog://service.fog.mob.production.namda.net": enclave,
+		"fog://fog-rpt-prd.namda.net":                enclave,
+		// "fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
+	}
 }

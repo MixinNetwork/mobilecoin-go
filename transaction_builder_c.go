@@ -42,10 +42,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
 		if err != nil {
 			fmt.Printf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
-			if strings.Contains(err.Error(), "Attestation verification failed") {
-				continue
-			}
-			return nil, err
+			continue
 		}
 		return txC, nil
 	}
@@ -57,12 +54,7 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
-		fog_url_to_mr_enclave_hex := map[string]string{
-			"fog://fog.prod.mobilecoinww.com":            enclave,
-			"fog://fog-rpt-prd.namda.net":                enclave,
-			"fog://service.fog.mob.production.namda.net": enclave,
-			"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
-		}
+		fog_url_to_mr_enclave_hex := fetchValidFogURL(enclave)
 
 		uri, err := url.Parse(recipient.FogReportUrl)
 		if err != nil {
