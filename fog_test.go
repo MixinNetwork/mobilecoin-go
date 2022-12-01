@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Since there's some compile bugs for libmobilecoind in OSX, the tests can't pass in MAC
 func TestFogAddress(t *testing.T) {
 	assert := assert.New(t)
 	err := ValidateAddress("2v47hNBvaA8dZC7ZMmSP3GpLMgRzN6YwWL1nY39chuDLjGokW3Bwmq3NtWoufizk21mYRJfJmyM12RCdgbsv6CAqXgfBKaA2J6boeRAcVB2")

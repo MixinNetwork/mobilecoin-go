@@ -53,20 +53,6 @@ type FogFullyValidatedPubkey struct {
 }
 
 func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave string) error {
-	// Used for returning errors from libmobilecoin
-	var mc_error *C.McError
-	// Connect to the fog report server and obtain a report
-	report, err := GetFogReportResponse(recipient.FogReportUrl)
-	if err != nil {
-		return err
-	}
-
-	// Convert the report back to protobuf bytes so that it could be handed to libmobilecoin
-	reportBytes, err := proto.Marshal(report)
-	if err != nil {
-		return err
-	}
-
 	mr_enclave_hex, err := fetchValidFogEnclave(recipient.FogReportUrl, enclave)
 	if err != nil {
 		return err
@@ -145,6 +131,18 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 	}
 	defer C.mc_fog_resolver_free(fog_resolver)
 
+	// Connect to the fog report server and obtain a report
+	report, err := GetFogReportResponse(recipient.FogReportUrl)
+	if err != nil {
+		return err
+	}
+
+	// Convert the report back to protobuf bytes so that it could be handed to libmobilecoin
+	reportBytes, err := proto.Marshal(report)
+	if err != nil {
+		return err
+	}
+
 	// Add the report bytes to the resolver
 	c_report_buf_bytes := C.CBytes(reportBytes)
 	defer C.free(c_report_buf_bytes)
@@ -157,6 +155,8 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 	c_address := C.CString(recipient.FogReportUrl)
 	defer C.free(unsafe.Pointer(c_address))
 
+	// Used for returning errors from libmobilecoin
+	var mc_error *C.McError
 	ret, err = C.mc_fog_resolver_add_report_response(
 		fog_resolver,
 		c_address,
