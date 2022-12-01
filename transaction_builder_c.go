@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strings"
 	"unsafe"
 
 	account "github.com/MixinNetwork/mobilecoin-account"
@@ -31,24 +30,23 @@ type TxC struct {
 	ConfirmationChange []byte
 }
 
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+var myenclaves = []string{
+	"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
+	"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
+}
 
-	myenclaves := []string{
-		"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
-		"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
-	}
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+	var errors string
 	for _, enclave := range myenclaves {
 		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
 		if err != nil {
-			fmt.Printf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
-			if strings.Contains(err.Error(), "Attestation verification failed") {
-				continue
-			}
-			return nil, err
+			errors += fmt.Sprintf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
+			continue
 		}
 		return txC, nil
 	}
-	return nil, errors.New("invalid myenclaves")
+	destination, _ := recipient.B58Code()
+	return nil, fmt.Errorf("recipient %s, errors %s", destination, errors)
 }
 
 // mc_transaction_builder_create
@@ -56,18 +54,10 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
-		fog_url_to_mr_enclave_hex := map[string]string{
-			"fog://fog.prod.mobilecoinww.com":            enclave,
-			"fog://fog-rpt-prd.namda.net":                enclave,
-			"fog://service.fog.mob.production.namda.net": enclave,
-			"fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
+		mr_enclave_hex, err := fetchValidFogEnclave(recipient.FogReportUrl, enclave)
+		if err != nil {
+			return nil, err
 		}
-
-		mr_enclave_hex, ok := fog_url_to_mr_enclave_hex[string(recipient.FogReportUrl)]
-		if !ok {
-			return nil, errors.New("No enclave hex for Address' fog url")
-		}
-
 		// Construct a verifier object that is used to verify the report's attestation
 		mr_enclave_bytes, err := hex.DecodeString(mr_enclave_hex)
 		if err != nil {
