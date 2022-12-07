@@ -175,7 +175,29 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 		}
 	}
 
-	memo_builder, err := C.mc_memo_builder_default_create()
+	random := inputCs[0]
+	random_view_private_buf := random.ViewPrivate.Bytes()
+	random_view_private_bytes := C.CBytes(random_view_private_buf)
+	defer C.free(random_view_private_bytes)
+	random_view_private_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(random_view_private_bytes),
+		len:    C.size_t(len(random_view_private_buf)),
+	}
+	random_spend_private_buf := random.SpendPrivate.Bytes()
+	random_spend_private_bytes := C.CBytes(random_spend_private_buf)
+	defer C.free(random_spend_private_bytes)
+	random_spend_private_key := &C.McBuffer{
+		buffer: (*C.uint8_t)(random_spend_private_bytes),
+		len:    C.size_t(len(random_spend_private_buf)),
+	}
+	var random_fog_info *C.McAccountKeyFogInfo
+	account_key := (*C.McAccountKey)(C.malloc(C.sizeof_McAccountKey))
+	defer C.free(unsafe.Pointer(account_key))
+	account_key.view_private_key = random_view_private_key
+	account_key.spend_private_key = random_spend_private_key
+	account_key.fog_info = random_fog_info
+
+	memo_builder, err := C.mc_memo_builder_sender_and_destination_create(account_key)
 	if err != nil {
 		return nil, err
 	}
