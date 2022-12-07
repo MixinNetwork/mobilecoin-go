@@ -190,10 +190,13 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 		buffer: (*C.uint8_t)(random_spend_private_bytes),
 		len:    C.size_t(len(random_spend_private_buf)),
 	}
+	random_fog_info := (*C.McAccountKeyFogInfo)(C.malloc(C.sizeof_McAccountKeyFogInfo))
+	defer C.free(unsafe.Pointer(random_fog_info))
 	account_key := (*C.McAccountKey)(C.malloc(C.sizeof_McAccountKey))
 	defer C.free(unsafe.Pointer(account_key))
 	account_key.view_private_key = random_view_private_key
 	account_key.spend_private_key = random_spend_private_key
+	account_key.fog_info = random_fog_info
 
 	memo_builder, err := C.mc_memo_builder_sender_and_destination_create(account_key)
 	if err != nil {
