@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bwesterb/go-ristretto"
 	account "github.com/MixinNetwork/mobilecoin-account"
 	"github.com/MixinNetwork/mobilecoin-account/types"
+	"github.com/bwesterb/go-ristretto"
 )
 
 type TxOutWithProofC struct {
@@ -18,6 +18,7 @@ type TxOutWithProofC struct {
 
 type InputC struct {
 	ViewPrivate            *ristretto.Scalar
+	SpendPrivate           *ristretto.Scalar
 	SubAddressSpendPrivate *ristretto.Scalar
 	RealIndex              int
 	TxOutWithProofCs       []*TxOutWithProofC
@@ -81,6 +82,7 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 		}
 		inputCs = append(inputCs, &InputC{
 			ViewPrivate:            account.HexToScalar(utxo.PrivateKey[:64]),
+			SpendPrivate:           account.HexToScalar(utxo.PrivateKey[64:]),
 			SubAddressSpendPrivate: acc.SubaddressSpendPrivateKey(0),
 			RealIndex:              index,
 			TxOutWithProofCs:       txOutWithProofCs,
