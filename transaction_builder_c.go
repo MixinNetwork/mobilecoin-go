@@ -35,10 +35,10 @@ var myenclaves = []string{
 	"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
 }
 
-func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
+func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, tombstone, memo uint64, tokenID, version uint, recipient, change *account.PublicAddress) (*TxC, error) {
 	var errors string
 	for _, enclave := range myenclaves {
-		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change, enclave)
+		txC, err := MCTransactionBuilderCreateCWithEnclave(inputCs, amount, changeAmount, fee, tombstone, memo, tokenID, version, recipient, change, enclave)
 		if err != nil {
 			errors += fmt.Sprintf("MCTransactionBuilderCreateCWithEnclave enclave: %s, error: %v \n", enclave, err)
 			continue
@@ -50,7 +50,7 @@ func MCTransactionBuilderCreateC(inputCs []*InputC, amount, changeAmount, fee, t
 }
 
 // mc_transaction_builder_create
-func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmount, fee, tombstone uint64, tokenID, version uint, recipient, change *account.PublicAddress, enclave string) (*TxC, error) {
+func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmount, fee, tombstone, memo uint64, tokenID, version uint, recipient, change *account.PublicAddress, enclave string) (*TxC, error) {
 	var fog_resolver *C.McFogResolver
 
 	if recipient != nil && recipient.FogReportUrl != "" {
@@ -197,7 +197,7 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	account_key.spend_private_key = random_spend_private_key
 	account_key.fog_info = random_fog_info
 
-	memo_builder, err := C.mc_memo_builder_sender_and_destination_create(account_key)
+	memo_builder, err := C.mc_memo_builder_sender_payment_request_and_destination_create(C.uint64_t(memo), account_key)
 	if err != nil {
 		return nil, err
 	}
