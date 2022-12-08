@@ -47,7 +47,7 @@ type Output struct {
 	ChangeAmount    uint64
 }
 
-func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, tombstone uint64, tokenID, version uint, changeStr string) (*Output, error) {
+func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amount, fee uint64, tombstone, memo uint64, tokenID, version uint, changeStr string) (*Output, error) {
 	recipient, err := account.DecodeB58Code(output)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func TransactionBuilderBuild(inputs []*UTXO, proofs *Proofs, output string, amou
 		return nil, err
 	}
 
-	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, tokenID, version, recipient, change)
+	txC, err := MCTransactionBuilderCreateC(inputCs, amount, changeAmount, fee, tombstone, memo, tokenID, version, recipient, change)
 	if err != nil {
 		return nil, err
 	}
