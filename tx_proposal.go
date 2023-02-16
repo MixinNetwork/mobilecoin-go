@@ -70,6 +70,7 @@ type Amount struct {
 	Commitment    string      `json:"commitment"`
 	MaskedValue   MaskedValue `json:"masked_value"`
 	MaskedTokenID string      `json:"masked_token_id"`
+	Version       int64       `json:"version"`
 }
 
 type TxOut struct {
