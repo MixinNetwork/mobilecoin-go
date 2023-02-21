@@ -134,17 +134,29 @@ func UnmarshalPrefix(prefix *types.TxPrefix) *TxPrefix {
 }
 
 func UnmarshalTxOut(out *types.TxOut) *TxOut {
-	return &TxOut{
-		Amount: &Amount{
-			Commitment:    hex.EncodeToString(out.MaskedAmount.Commitment.GetData()),
-			MaskedValue:   MaskedValue(out.MaskedAmount.MaskedValue),
-			MaskedTokenID: hex.EncodeToString(out.MaskedAmount.MaskedTokenId),
-		},
+	txOut := &TxOut{
 		TargetKey: hex.EncodeToString(out.TargetKey.GetData()),
 		PublicKey: hex.EncodeToString(out.PublicKey.GetData()),
 		EFogHint:  hex.EncodeToString(out.EFogHint.GetData()),
 		EMemo:     hex.EncodeToString(out.EMemo.GetData()),
 	}
+	if v1 := out.GetMaskedAmountV1(); v1 != nil {
+		txOut.Amount = &Amount{
+			Commitment:    hex.EncodeToString(v1.Commitment.GetData()),
+			MaskedValue:   MaskedValue(v1.MaskedValue),
+			MaskedTokenID: hex.EncodeToString(v1.MaskedTokenId),
+			Version:       1,
+		}
+	}
+	if v2 := out.GetMaskedAmountV2(); v2 != nil {
+		txOut.Amount = &Amount{
+			Commitment:    hex.EncodeToString(v2.Commitment.GetData()),
+			MaskedValue:   MaskedValue(v2.MaskedValue),
+			MaskedTokenID: hex.EncodeToString(v2.MaskedTokenId),
+			Version:       2,
+		}
+	}
+	return txOut
 }
 
 func UnmarshalTxOutMembershipProof(proof *types.TxOutMembershipProof) *TxOutMembershipProof {

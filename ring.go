@@ -12,7 +12,7 @@ import (
 )
 
 type TxOutWithProofC struct {
-	TxOut                *types.TxOut
+	TxOut                *types.TxOut // TODO
 	TxOutMembershipProof *types.TxOutMembershipProof
 }
 
@@ -93,19 +93,36 @@ func BuildRingElements(utxos []*UTXO, proofs *Proofs) ([]*InputC, error) {
 
 func MarshalTxOut(input *TxOut) *types.TxOut {
 	out := &types.TxOut{
-		MaskedAmount: &types.MaskedAmount{
-			Commitment: &types.CompressedRistretto{
-				Data: account.HexToBytes(input.Amount.Commitment),
-			},
-			MaskedValue:   uint64(input.Amount.MaskedValue),
-			MaskedTokenId: account.HexToBytes(input.Amount.MaskedTokenID),
-		},
 		TargetKey: &types.CompressedRistretto{
 			Data: account.HexToPoint(input.TargetKey).Bytes(),
 		},
 		PublicKey: &types.CompressedRistretto{
 			Data: account.HexToPoint(input.PublicKey).Bytes(),
 		},
+	}
+	switch input.Amount.Version {
+	case 1:
+		out.MaskedAmount = &types.TxOut_MaskedAmountV1{
+			MaskedAmountV1: &types.MaskedAmount{
+				Commitment: &types.CompressedRistretto{
+					Data: account.HexToBytes(input.Amount.Commitment),
+				},
+				MaskedValue:   uint64(input.Amount.MaskedValue),
+				MaskedTokenId: account.HexToBytes(input.Amount.MaskedTokenID),
+			},
+		}
+	case 2:
+		out.MaskedAmount = &types.TxOut_MaskedAmountV2{
+			MaskedAmountV2: &types.MaskedAmount{
+				Commitment: &types.CompressedRistretto{
+					Data: account.HexToBytes(input.Amount.Commitment),
+				},
+				MaskedValue:   uint64(input.Amount.MaskedValue),
+				MaskedTokenId: account.HexToBytes(input.Amount.MaskedTokenID),
+			},
+		}
+	default:
+		panic(fmt.Sprintf("Invalid amount version %d", input.Amount.Version))
 	}
 	if input.EFogHint != "" {
 		out.EFogHint = &types.EncryptedFogHint{

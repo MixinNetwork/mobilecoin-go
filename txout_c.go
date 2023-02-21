@@ -23,7 +23,7 @@ type TxOutAmount struct {
 	TokenID uint64
 }
 
-func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPrivateKeyStr string) (*TxOutAmount, error) {
+func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr string, version int64, publicKeyStr, viewPrivateKeyStr string) (*TxOutAmount, error) {
 	masked_amount, err := strconv.ParseUint(maskedAmountStr, 10, 64)
 	if err != nil {
 		return nil, err
@@ -39,6 +39,7 @@ func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPriva
 	defer C.free(unsafe.Pointer(tx_out_masked_amount))
 	tx_out_masked_amount.masked_value = C.uint64_t(masked_amount)
 	tx_out_masked_amount.masked_token_id = masked_token_id
+	tx_out_masked_amount.version = uint32(version)
 
 	publicKey := account.HexToPoint(publicKeyStr)
 	public_key_buf := publicKey.Bytes()
@@ -77,7 +78,7 @@ func MCTxOutGetAmount(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPriva
 	}, nil
 }
 
-func MCTxOutReconstructCommitment(maskedAmountStr, maskedTokenIDStr, publicKeyStr, viewPrivateKeyStr string) (string, error) {
+func MCTxOutReconstructCommitment(maskedAmountStr, maskedTokenIDStr string, version int64, publicKeyStr, viewPrivateKeyStr string) (string, error) {
 	masked_amount, err := strconv.ParseUint(maskedAmountStr, 10, 64)
 	if err != nil {
 		return "", err
@@ -93,6 +94,7 @@ func MCTxOutReconstructCommitment(maskedAmountStr, maskedTokenIDStr, publicKeySt
 	defer C.free(unsafe.Pointer(tx_out_masked_amount))
 	tx_out_masked_amount.masked_value = C.uint64_t(masked_amount)
 	tx_out_masked_amount.masked_token_id = masked_token_id
+	tx_out_masked_amount.version = uint32(version)
 
 	publicKey := account.HexToPoint(publicKeyStr)
 	public_key_buf := publicKey.Bytes()

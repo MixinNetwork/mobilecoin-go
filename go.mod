@@ -2,6 +2,8 @@ module github.com/MixinNetwork/mobilecoin-go
 
 go 1.19
 
+replace github.com/MixinNetwork/mobilecoin-account => ../mobilecoin-account
+
 require (
 	github.com/MixinNetwork/mobilecoin-account v0.0.2
 	github.com/bwesterb/go-ristretto v1.2.2

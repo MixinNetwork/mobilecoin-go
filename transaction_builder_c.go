@@ -31,6 +31,7 @@ type TxC struct {
 }
 
 var myenclaves = []string{
+	"16d73984c2d2712156135ab69987ca78aca67a2cf4f0f2287ea584556f9d223a", // v4.0.0 testnet
 	"a8af815564569aae3558d8e4e4be14d1bcec896623166a10494b4eaea3e1c48c", // v4.0.0
 	"3370f131b41e5a49ed97c4188f7a976461ac6127f8d222a37929ac46b46d560e", // v3.0.0
 	"3e9bf61f3191add7b054f0e591b62f832854606f6594fd63faef1e2aedec4021", // lower than v3.0.0
@@ -204,12 +205,15 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	}
 	defer C.mc_memo_builder_free(memo_builder)
 
-	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
+	var build_error *C.McError
+	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version), &build_error)
 	if err != nil {
 		return nil, err
 	}
 	if transaction_builder == nil {
-		return nil, errors.New("mc_transaction_builder_create error")
+		err = fmt.Errorf("mc_transaction_builder_create failed: [%d] %s", build_error.error_code, C.GoString(build_error.error_description))
+		C.mc_error_free(build_error)
+		return nil, err
 	}
 	defer C.mc_transaction_builder_free(transaction_builder)
 
