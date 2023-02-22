@@ -12,7 +12,7 @@ import (
 )
 
 type TxOutWithProofC struct {
-	TxOut                *types.TxOut // TODO
+	TxOut                *types.TxOut
 	TxOutMembershipProof *types.TxOutMembershipProof
 }
 
