@@ -101,7 +101,7 @@ func MarshalTxOut(input *TxOut) *types.TxOut {
 		},
 	}
 	switch input.Amount.Version {
-	case 1:
+	case 0, 1:
 		out.MaskedAmount = &types.TxOut_MaskedAmountV1{
 			MaskedAmountV1: &types.MaskedAmount{
 				Commitment: &types.CompressedRistretto{
