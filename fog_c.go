@@ -276,6 +276,7 @@ func fetchValidFogEnclave(host, enclave string) (string, error) {
 		"fog://fog.prod.mobilecoinww.com":            enclave,
 		"fog://service.fog.mob.production.namda.net": enclave,
 		"fog://fog-rpt-prd.namda.net":                enclave,
+		// "fog://fog.test.mobilecoin.com":              enclave,
 		// "fog://service.fog.mob.staging.namda.net":    "a4764346f91979b4906d4ce26102228efe3aba39216dec1e7d22e6b06f919f11",
 	}
 
