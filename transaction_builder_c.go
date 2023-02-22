@@ -204,12 +204,15 @@ func MCTransactionBuilderCreateCWithEnclave(inputCs []*InputC, amount, changeAmo
 	}
 	defer C.mc_memo_builder_free(memo_builder)
 
-	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version))
+	var build_error *C.McError
+	transaction_builder, err := C.mc_transaction_builder_create(C.uint64_t(fee), C.uint64_t(tokenID), C.uint64_t(tombstone), fog_resolver, memo_builder, C.uint32_t(version), &build_error)
 	if err != nil {
 		return nil, err
 	}
 	if transaction_builder == nil {
-		return nil, errors.New("mc_transaction_builder_create error")
+		err = fmt.Errorf("mc_transaction_builder_create failed: [%d] %s", build_error.error_code, C.GoString(build_error.error_description))
+		C.mc_error_free(build_error)
+		return nil, err
 	}
 	defer C.mc_transaction_builder_free(transaction_builder)
 

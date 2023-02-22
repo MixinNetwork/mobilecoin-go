@@ -1,5 +1,5 @@
-github.com/MixinNetwork/mobilecoin-account v0.0.2 h1:2Ib8UQft6KySAFhGU5kjQNOvVIENlH6QXgW6uC+od0I=
-github.com/MixinNetwork/mobilecoin-account v0.0.2/go.mod h1:53/Dnb+RQttRjnSEK0RKD28A1326P8lpw8Ydl50lk1g=
+github.com/MixinNetwork/mobilecoin-account v0.0.3 h1:EtEMjwm8YaYu/urGBEf0wjyB7IEtjbTEWrn+2J44MMs=
+github.com/MixinNetwork/mobilecoin-account v0.0.3/go.mod h1:53/Dnb+RQttRjnSEK0RKD28A1326P8lpw8Ydl50lk1g=
 github.com/bwesterb/go-ristretto v1.2.2 h1:S2C0mmSjCLS3H9+zfXoIoKzl+cOncvBvt6pE+zTm5Ms=
 github.com/bwesterb/go-ristretto v1.2.2/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
