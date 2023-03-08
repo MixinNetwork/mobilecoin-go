@@ -1,12 +1,15 @@
 package api
 
 import (
+	"crypto/sha512"
 	"encoding/binary"
 	"encoding/hex"
+	"io"
 
+	account "github.com/MixinNetwork/mobilecoin-account"
 	"github.com/bwesterb/go-ristretto"
 	"github.com/dchest/blake2b"
-	account "github.com/MixinNetwork/mobilecoin-account"
+	"golang.org/x/crypto/hkdf"
 )
 
 func keyImage(private *ristretto.Scalar) *ristretto.Point {
@@ -114,4 +117,58 @@ func RecoverPublicSubaddressSpendKey(viewPrivate, onetimePublicKey, publicKey st
 	var g ristretto.Point
 	var r1, r ristretto.Point
 	return r.Sub(p, r1.ScalarMult(g.SetBase(), hs.SetReduced(&key))), nil
+}
+
+// get_blinding_factors
+func GetBlindingFactorsV2(secret []byte) (uint64, error) {
+	hash := sha512.New
+
+	value_mask := make([]byte, 8)
+	hkdf3 := hkdf.New(hash, secret, []byte(AMOUNT_BLINDING_FACTORS_DOMAIN_TAG), []byte(AMOUNT_VALUE_DOMAIN_TAG))
+	_, err := io.ReadFull(hkdf3, value_mask)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(value_mask), nil
+}
+
+// compute_commitment
+func ComputeCommitmentV2(masked_value uint64, secret []byte) (uint64, error) {
+	value_mask, err := GetBlindingFactorsV2(secret)
+	if err != nil {
+		return 0, err
+	}
+	value := masked_value ^ value_mask
+	return value, nil
+}
+
+// get_value_from_amount_shared_secret
+func GetValueFromAmountSharedSecretV2(maskedValue uint64, secret *ristretto.Point) (uint64, error) {
+	amount_shared_secret := ComputeAmountSharedSecretV2(secret)
+	return ComputeCommitmentV2(maskedValue, amount_shared_secret)
+}
+
+// compute_amount_shared_secret
+func ComputeAmountSharedSecretV2(secret *ristretto.Point) []byte {
+	hash := blake2b.New512()
+	hash.Write([]byte(AMOUNT_SHARED_SECRET_DOMAIN_TAG))
+	hash.Write(secret.Bytes())
+
+	var key [64]byte
+	copy(key[:], hash.Sum(nil))
+	return key[:32]
+}
+
+func GetValueV2(amount *Amount, viewPrivate, publicKey string) (uint64, error) {
+	secret := account.SharedSecret(viewPrivate, publicKey)
+	maskedValue := uint64(amount.MaskedValue)
+	return GetValueFromAmountSharedSecretV2(maskedValue, secret)
+}
+
+func GetValue(output *TxOut, viewPrivate string) (uint64, error) {
+	if output.Amount.Version == 2 {
+		return GetValueV2(output.Amount, viewPrivate, output.PublicKey)
+	}
+	value, _ := GetValueWithBlindingNew(viewPrivate, output.PublicKey, uint64(output.Amount.MaskedValue))
+	return value, nil
 }
