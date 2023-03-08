@@ -12,11 +12,14 @@ import (
 const (
 	BULLETPROOF_DOMAIN_TAG               = "mc_bulletproof_transcript"
 	AMOUNT_VALUE_DOMAIN_TAG              = "mc_amount_value"
+	AMOUNT_TOKEN_ID_DOMAIN_TAG           = "mc_amount_token_id"
 	AMOUNT_BLINDING_DOMAIN_TAG           = "mc_amount_blinding"
 	HASH_TO_POINT_DOMAIN_TAG             = "mc_onetime_key_hash_to_point"
 	HASH_TO_SCALAR_DOMAIN_TAG            = "mc_onetime_key_hash_to_scalar"
 	RING_MLSAG_CHALLENGE_DOMAIN_TAG      = "mc_ring_mlsag_challenge"
 	TXOUT_CONFIRMATION_NUMBER_DOMAIN_TAG = "mc_tx_out_confirmation_number"
+	AMOUNT_SHARED_SECRET_DOMAIN_TAG      = "mc_amount_shared_secret"
+	AMOUNT_BLINDING_FACTORS_DOMAIN_TAG   = "mc_amount_blinding_factors"
 	MILLIMOB_TO_PICOMOB                  = 1_000_000_000
 	PICOMOB                              = 1_000_000_000_000 // precision = 12
 	MOB_MINIMUM_FEE                      = 400_000_000
