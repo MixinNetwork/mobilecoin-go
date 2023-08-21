@@ -27,9 +27,9 @@ func TestFogAddress(t *testing.T) {
 	// testnet address, should uncommit fetchValidFogEnclave,
 	// and uncommit myenclaves first
 	// err = ValidateAddress("3QotDchXAPpHLKELeERNRNZPRzud8kLm9FUed5rsf1zVn7dYgBxbQii7AUt5TR2tFK7TAcTEzEHYGYBRrJM8kbZ9nsmE4E5v68BViA9LBt2ogJ8aNFG7XhGpVEDUCd4j1s1NfVWPTTj68afWrYBRQrJnW5ZhAhMuujf7RgBbE4G9jfRjRgHDM2JWACbKnSgzpBK1skwqdgnE1hejdTSbcHuSYvZgUEdcFuPmcMgFZ6YkheFvf")
-	assert.Nil(err)
+	// assert.Nil(err)
 
 	// testnet address, should un commit fetchValidFogEnclave
 	// err = ValidateAddress("4oD5TztGGtEQDgnenFQALLAtBYFT6CNXYezKVqPtpt7ypSGJLCuJKdS3ZiKNTnrNx25AF7kMFFbNki1bdYod9Thv6WBfUYZZdh51XyYKhqf1thG5zFynikXTRzczZETYWhg2ARJckiFvkVtrRczvcuS9egux6or2WA9J7dTZVV3523ghZVZ1BcJ63A3P7RUzmH1FhHnwCPrgk1teC8dkhaNUpyvP5KwELSPveXGpSrgi9L1Ym")
-	assert.Nil(err)
+	// assert.Nil(err)
 }
