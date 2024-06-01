@@ -69,7 +69,7 @@ func DecryptEMemoPayload(encryptedMemoStr, txOutPublicKey, viewPrivateKeyStr, sp
 	}
 
 	var out_error *C.McError
-	b, err := C.mc_memo_decrypt_e_memo_payload(encrypted_memo, tx_out_public_key, account_key, out_memo_payload, &out_error)
+	b, err := C.mc_memo_decrypt_e_memo_payload(encrypted_memo, tx_out_public_key, view_private_key, out_memo_payload, &out_error)
 	if err != nil {
 		return "", err
 	}

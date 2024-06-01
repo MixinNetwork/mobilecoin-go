@@ -71,61 +71,82 @@ func ValidateFogAddressWithEnclave(recipient *account.PublicAddress, enclave str
 		len:    C.ulong(len(mr_enclave_bytes)),
 	}
 
-	mr_enclave_verifier, err := C.mc_mr_enclave_verifier_create(&c_mr_enclave)
+	mc_config_advisories, err := C.mc_advisories_create()
 	if err != nil {
 		return err
 	}
-	if mr_enclave_verifier == nil {
-		return errors.New("mc_mr_enclave_verifier_create failed")
+	if mc_config_advisories == nil {
+		return errors.New("mc_advisories_create failed")
 	}
-	defer C.mc_mr_enclave_verifier_free(mr_enclave_verifier)
+	defer C.mc_advisories_free(mc_config_advisories)
 
-	c_advisory_id := C.CString("INTEL-SA-00334")
-	defer C.free(unsafe.Pointer(c_advisory_id))
-	ret, err := C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id)
+	mc_hardening_advisories, err := C.mc_advisories_create()
+	if err != nil {
+		return err
+	}
+	if mc_hardening_advisories == nil {
+		return errors.New("mc_advisories_create failed")
+	}
+	defer C.mc_advisories_free(mc_hardening_advisories)
+
+	c_advisory_id_00334 := C.CString("INTEL-SA-00334")
+	defer C.free(unsafe.Pointer(c_advisory_id_00334))
+	ret, err := C.mc_add_advisory(mc_hardening_advisories, c_advisory_id_00334)
 	if err != nil {
 		return err
 	}
 	if ret == false {
-		return errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00334 failed")
+		return errors.New("mc_add_advisory INTEL-SA-00334 failed")
 	}
 
 	c_advisory_id_00615 := C.CString("INTEL-SA-00615")
 	defer C.free(unsafe.Pointer(c_advisory_id_00615))
-	ret, err = C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id_00615)
+	ret, err = C.mc_add_advisory(mc_hardening_advisories, c_advisory_id_00615)
 	if err != nil {
 		return err
 	}
 	if ret == false {
-		return errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00615 failed")
+		return errors.New("mc_add_advisory INTEL-SA-00615 failed")
 	}
 
 	c_advisory_id_00657 := C.CString("INTEL-SA-00657")
 	defer C.free(unsafe.Pointer(c_advisory_id_00657))
-	ret, err = C.mc_mr_enclave_verifier_allow_hardening_advisory(mr_enclave_verifier, c_advisory_id_00657)
+	ret, err = C.mc_add_advisory(mc_hardening_advisories, c_advisory_id_00657)
 	if err != nil {
 		return err
 	}
 	if ret == false {
-		return errors.New("mc_mr_enclave_verifier_allow_hardening_advisory INTEL-SA-00657 failed")
+		return errors.New("mc_add_advisory INTEL-SA-00657 failed")
 	}
 
-	verifier, err := C.mc_verifier_create()
+	mc_trusted_mr_enclave_identity, err := C.mc_trusted_identity_mr_enclave_create(&c_mr_enclave, mc_config_advisories, mc_hardening_advisories)
 	if err != nil {
 		return err
 	}
-	defer C.mc_verifier_free(verifier)
+	if mc_trusted_mr_enclave_identity == nil {
+		return errors.New("mc_trusted_identity_mr_enclave_create failed")
+	}
+	defer C.mc_trusted_identity_mr_enclave_free(mc_trusted_mr_enclave_identity)
 
-	ret, err = C.mc_verifier_add_mr_enclave(verifier, mr_enclave_verifier)
+	mc_trusted_identities, err := C.mc_trusted_identities_create()
+	if err != nil {
+		return err
+	}
+	if mc_trusted_identities == nil {
+		return errors.New("mc_trusted_identities_create failed")
+	}
+	defer C.mc_trusted_identities_free(mc_trusted_identities)
+
+	ret, err = C.mc_trusted_identities_add_mr_enclave(mc_trusted_identities, mc_trusted_mr_enclave_identity)
 	if err != nil {
 		return err
 	}
 	if ret == false {
-		return errors.New("mc_verifier_add_mr_enclave failed")
+		return errors.New("mc_trusted_identities_add_mr_enclave failed")
 	}
 
 	// Create the FogResolver object that is used to perform report validation using the verifier constructed above
-	fog_resolver, err := C.mc_fog_resolver_create(verifier)
+	fog_resolver, err := C.mc_fog_resolver_create(mc_trusted_identities)
 	if err != nil {
 		return err
 	}
